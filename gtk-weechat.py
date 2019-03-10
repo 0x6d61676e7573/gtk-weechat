@@ -19,16 +19,14 @@ class MainWindow(Gtk.Window):
         self.add(grid)
         
         # Set up widget for displaying chatbuffers
-        scrolledwindow=Gtk.ScrolledWindow()
-        grid.add(scrolledwindow)
-        scrolledwindow.set_hexpand(True)
-        scrolledwindow.set_vexpand(True)
         self.textview=Gtk.TextView()
+        self.textview.set_hexpand(True)
+        self.textview.set_vexpand(True)
         self.textview.set_cursor_visible(False)
         self.textview.set_editable(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         self.textview.set_buffer(ChatTextEdit())
-        scrolledwindow.add(self.textview)
+        grid.add(self.textview)
         
         # Set up prompt
         entry=Gtk.Entry()
