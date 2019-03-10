@@ -2,5 +2,5 @@
 GTK3 client for weechat, ported from qweechat.
 
 Dependencies:
-Python>=3.0
+Python>=3.0,
 PyGObject
