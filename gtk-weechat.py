@@ -2,7 +2,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from network import Network
-import weechat.protocol as protocol
+import protocol
 from buffer import Buffer, ChatTextEdit
 
 class MainWindow(Gtk.Window):
