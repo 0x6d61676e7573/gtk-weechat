@@ -159,7 +159,6 @@ class MainWindow(Gtk.Window):
             if message.msgid == 'listlines':
                 lines.reverse()
             for line in lines:
-                print(line[1])
                 self.buffers[line[0]].widget.chat.display(*line[1])
 
 

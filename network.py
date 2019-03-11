@@ -62,7 +62,7 @@ class Network(GObject.GObject):
         if gbytes == None:
             print("Empty message receieved...")
         else:
-            print(gbytes.get_data())         
+            print("A message of size {} was received.".format(len(gbytes.get_data())))
             self.emit("messageFromWeechat",gbytes)
         self.input.read_bytes_async(4,0,self.cancel_network_reads,self.get_message,*user_data)
          
