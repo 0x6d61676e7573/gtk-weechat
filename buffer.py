@@ -25,7 +25,7 @@ class ChatTextEdit(Gtk.TextBuffer):
         prefix=self._color.convert(prefix)
         text=self._color.convert(text)
         if prefix:
-            self._display_with_colors(prefix)
+            self._display_with_colors(prefix + " ")
             #self.insert(self.get_end_iter(), prefix + " " )
         if text:
             self._display_with_colors(text)
