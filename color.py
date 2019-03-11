@@ -82,9 +82,9 @@ class Color():
 
     def _rgb_color(self, index):
         color = TERMINAL_COLORS[index*6:(index*6)+6]
-        r = int(color[0:2], 16) * 0.85
-        g = int(color[2:4], 16) * 0.85
-        b = int(color[4:6], 16) * 0.85
+        r = int(int(color[0:2], 16) * 0.85)
+        g = int(int(color[2:4], 16) * 0.85)
+        b = int(int(color[4:6], 16) * 0.85)
         return '%02x%02x%02x' % (r, g, b)
 
     def _convert_weechat_color(self, color):

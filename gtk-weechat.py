@@ -4,6 +4,7 @@ from gi.repository import Gtk
 from network import Network
 import protocol
 from buffer import Buffer, ChatTextEdit
+import config
 
 class MainWindow(Gtk.Window):
     """GTK Main Window."""
@@ -12,6 +13,8 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="Gtk-weechat")
         self.connect("destroy", Gtk.main_quit)
+        # Get the settings from the config file
+        self.config=config.read()
         
         # Set up GTK Grid
         grid=Gtk.Grid()
