@@ -149,12 +149,9 @@ class Protocol:
     def _obj_type(self):
         """Read type in data (3 chars)."""
         if len(self.data) < 3:
-            print("Inside _obj_type, len < 3")
             self.data = ''
             return ''
         objtype = self.data[0:3].decode("utf-8")
-        print("Decoded objtype")
-        print(objtype)
         self.data = self.data[3:]
         return objtype
 
@@ -190,7 +187,6 @@ class Protocol:
         if len(self.data) < 4:
             self.data = ''
             return 0
-            
         value = struct.unpack('>i', self.data[0:4])[0]
         self.data = self.data[4:]
         return value
@@ -207,8 +203,6 @@ class Protocol:
         value = self._obj_len_data(4)
         if value is None:
             return None
-        print(value)
-        print(type(value))
         return value.decode("utf-8")
 
     def _obj_buffer(self):
@@ -268,14 +262,6 @@ class Protocol:
                 item[key] = self._obj_cb[objtype]()
             item['__path'] = pointers
             items.append(item)
-            print("items: ")
-            print(items)
-            print("count: ")
-            print(count)
-            print("dict_keys: ")
-            print(dict_keys)
-            print("list_path: ")
-            print(list_path)
         return {
             'path': list_path,
             'keys': dict_keys,
@@ -344,7 +330,6 @@ class Protocol:
         
         while len(self.data) > 0:
             objtype = self._obj_type()
-            print("Object type inside decode()", objtype)
             value = self._obj_cb[objtype]()
             objects.append(WeechatObject(objtype, value, separator=separator))
         return WeechatMessage(size, size_uncompressed, compression,
