@@ -28,6 +28,8 @@ class Network(GObject.GObject):
         self.socketclient= Gio.SocketClient.new()
         self.adr=Gio.NetworkAddress.new(self.host,self.port)
         self.cancel_network_reads=Gio.Cancellable()
+        self._network_buffer=bytes(4096)
+        self.message_buffer=b''
       
     def connect_weechat(self):
         """Sets up a socket connected to the WeeChat relay."""
@@ -43,29 +45,28 @@ class Network(GObject.GObject):
             self.send_to_weechat(_PROTO_INIT_CMD+"\n")
             self.send_to_weechat(_PROTO_SYNC_CMDS+"\n")
             self.input=self.socket.get_input_stream()
-            self.input.read_bytes_async(4,0,self.cancel_network_reads,self.get_message,*user_data)
+            self.input.read_async(self._network_buffer,0,self.cancel_network_reads,self.get_message)
         
     def get_message(self, source_object, res, *user_data):
         """Callback function to read the first 4 bytes of message."""
-        gbytes=self.input.read_bytes_finish(res)
-        if gbytes == None:
-            print("Thanks for nothing")
-            self.input.read_bytes_async(4,0,self.cancel_network_reads,self.get_message,*user_data)
-        else:
-            length=struct.unpack('>i',gbytes.get_data())[0]
-            print("Expecting message of size: ", length)
-        self.input.read_bytes_async(length,0,self.cancel_network_reads,self.get_message_payload,*user_data)
-	
-    def get_message_payload(self, source_object, res, *user_data):
-        """Callback function to read message from weechat of known size"""
-        gbytes=self.input.read_bytes_finish(res)
-        if gbytes == None:
-            print("Empty message receieved...")
-        else:
-            print("A message of size {} was received.".format(len(gbytes.get_data())))
-            self.emit("messageFromWeechat",gbytes)
-        self.input.read_bytes_async(4,0,self.cancel_network_reads,self.get_message,*user_data)
-         
+        bytes_received=self.input.read_finish(res)
+        if bytes_received <=0:
+            #Empty message or error, try another read
+            self.input.read_async(self._network_buffer,0,self.cancel_network_reads,self.get_message)
+            return
+        self.message_buffer+=self._network_buffer[:bytes_received]
+        #While the message buffer has enough data to hold a size header
+        while len(self.message_buffer)>=4:
+            length=struct.unpack('>i',self.message_buffer[0:4])[0]
+            if length<=len(self.message_buffer):
+                self.emit("messageFromWeechat",GLib.Bytes(self.message_buffer[0:length]))
+                #Toss the bytes used and save any remainder
+                self.message_buffer=self.message_buffer[length:]
+            else:
+                #Not a complete message yet, try to read more data
+                break 
+        self.input.read_async(self._network_buffer,0,self.cancel_network_reads,self.get_message)
+                      
     def disconnect_weechat(self):
         """Disconnect from WeeChat."""
         if not self.socket.is_connected():

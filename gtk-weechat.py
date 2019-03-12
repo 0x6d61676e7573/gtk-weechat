@@ -91,7 +91,7 @@ class MainWindow(Gtk.Window):
         print("A message was receieved! / Gtk main window.")
         try:
             proto = protocol.Protocol()
-            decoded_message = proto.decode(b'0000'+message.get_data())
+            decoded_message = proto.decode(message.get_data())
             self.parse_message(decoded_message)
         except:  # noqa: E722
             print('Error while decoding message from WeeChat:\n%s'
