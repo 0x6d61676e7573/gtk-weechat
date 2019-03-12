@@ -48,14 +48,15 @@ class Network(GObject.GObject):
             self.input.read_async(self._network_buffer,0,self.cancel_network_reads,self.get_message)
         
     def get_message(self, source_object, res, *user_data):
-        """Callback function to read the first 4 bytes of message."""
+        """Callback function to read network data, split it into""" 
+        """WeeChat messages that are passed on to the application."""
         bytes_received=self.input.read_finish(res)
         if bytes_received <=0:
             #Empty message or error, try another read
             self.input.read_async(self._network_buffer,0,self.cancel_network_reads,self.get_message)
             return
         self.message_buffer+=self._network_buffer[:bytes_received]
-        #While the message buffer has enough data to hold a size header
+        #While the message buffer has at least a size header in it
         while len(self.message_buffer)>=4:
             length=struct.unpack('>i',self.message_buffer[0:4])[0]
             if length<=len(self.message_buffer):
