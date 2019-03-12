@@ -12,7 +12,7 @@ import sys
 _PROTO_INIT_CMD = 'init password=mypass'
 
 _PROTO_SYNC_CMDS = '(listbuffers) hdata buffer:gui_buffers(*) number,full_name,short_name,type,nicklist,title,local_variables' \
-    '\n(listlines) hdata buffer:gui_buffers(*)/own_lines/last_line(-5)/'\
+    '\n(listlines) hdata buffer:gui_buffers(*)/own_lines/last_line(-20)/'\
     'data date,displayed,prefix,message'
 
 

@@ -23,17 +23,19 @@ class MainWindow(Gtk.Window):
         
         # Set up widget for displaying chatbuffers
         self.textview=Gtk.TextView()
-        self.textview.set_hexpand(True)
-        self.textview.set_vexpand(True)
+        self.scrolledwindow=Gtk.ScrolledWindow()
+        self.scrolledwindow.set_hexpand(True)
+        self.scrolledwindow.set_vexpand(True)
         self.textview.set_cursor_visible(False)
         self.textview.set_editable(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         self.textview.set_buffer(ChatTextEdit())
-        grid.add(self.textview)
+        self.scrolledwindow.add(self.textview)
+        grid.attach(self.scrolledwindow,1,0,4,1)
         
         # Set up prompt
         entry=Gtk.Entry()
-        grid.add(entry)
+        grid.attach(entry,1,1,1,1)
         
         # Set up main window buttons
         button_quit = Gtk.Button(label="quit")
@@ -42,9 +44,9 @@ class MainWindow(Gtk.Window):
         button_connect.connect("clicked",self.on_button_connect_clicked)
         button_disconnect=Gtk.Button(label="disconnect")
         button_disconnect.connect("clicked",self.on_button_disconnect_clicked)
-        grid.add(button_quit)
-        grid.add(button_connect)
-        grid.add(button_disconnect)
+        grid.attach(button_quit,2,1,1,1)
+        grid.attach(button_connect,3,1,1,1)
+        grid.attach(button_disconnect,4,1,1,1)
         
         # Set up widget for displaing list of chatbuffer indices + names
         self.list_buffers=Gtk.ListStore(int, str)
@@ -57,7 +59,7 @@ class MainWindow(Gtk.Window):
         self.tree.append_column(self.column2)
         self.tree.set_activate_on_single_click(True)
         self.tree.connect("row-activated", self.on_tree_row_clicked)
-        grid.add(self.tree)
+        grid.attach(self.tree,0,0,1,2)
         
         # Set up a list of buffer objects, holding data for every buffer
         self.buffers=[Buffer()]
