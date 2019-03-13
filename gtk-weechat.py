@@ -58,8 +58,19 @@ class MainWindow(Gtk.Window):
         self.tree.append_column(self.column)
         self.tree.append_column(self.column2)
         self.tree.set_activate_on_single_click(True)
+        self.tree.set_headers_visible(False)
         self.tree.connect("row-activated", self.on_tree_row_clicked)
         grid.attach(self.tree,0,0,1,2)
+        
+        # Set up widget for displaying nicklist
+        tmp=Gtk.ListStore(str)
+        tmp.append(("test",))
+        nicklist_renderer=Gtk.CellRendererText()
+        nicklist_column=Gtk.TreeViewColumn("something",nicklist_renderer,text=0)
+        self.nick_display_widget=Gtk.TreeView(tmp)
+        self.nick_display_widget.set_headers_visible(False)
+        self.nick_display_widget.append_column(nicklist_column)
+        grid.attach(self.nick_display_widget,5,0,1,3)
         
         # Set up a list of buffer objects, holding data for every buffer
         self.buffers=[Buffer()]
@@ -87,6 +98,7 @@ class MainWindow(Gtk.Window):
         index=path.get_indices()[0]
         print("Displaying buffer with index {}.".format(index))
         self.textview.set_buffer(self.buffers[index].widget.chat)
+        self.nick_display_widget.set_model(self.buffers[index].nicklist_data)
         
     def _network_weechat_msg(self, source_object, message):
         """Called when a message is received from WeeChat."""
@@ -166,7 +178,29 @@ class MainWindow(Gtk.Window):
             for line in lines:
                 self.buffers[line[0]].widget.chat.display(*line[1])
 
-
+    def _parse_nicklist(self, message):
+        """Parse a WeeChat message with a buffer nicklist."""
+        buffer_refresh = set()
+        for obj in message.objects:
+            if obj.objtype != 'hda' or \
+               obj.value['path'][-1] != 'nicklist_item':
+                continue
+            group = '__root'
+            for item in obj.value['items']:
+                index = [i for i, b in enumerate(self.buffers)
+                         if b.pointer() == item['__path'][0]]
+                if index:
+                    if not index[0] in buffer_refresh:
+                        self.buffers[index[0]].nicklist = {}
+                    buffer_refresh.add(index[0])
+                    if item['group']:
+                        group = item['name']
+                    self.buffers[index[0]].nicklist_add_item(
+                        group, item['group'], item['prefix'], item['name'],
+                        item['visible'])
+        for index in buffer_refresh:
+            self.buffers[index].nicklist_refresh()
+            
     def create_buffer(self, item):
         """Create a new buffer."""
         buf = Buffer(item)

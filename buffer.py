@@ -103,7 +103,49 @@ class Buffer:
         self.data=data
         self.nicklist={}
         self.widget=BufferWidget()
-      
+        self.nicklist_data=Gtk.ListStore(str)
+    
+    def nicklist_add_item(self, parent, group, prefix, name, visible):
+        """Add a group/nick in nicklist."""
+        if group:
+            self.nicklist[name] = {
+                'visible': visible,
+                'nicks': []
+            }
+        else:
+            self.nicklist[parent]['nicks'].append({
+                'prefix': prefix,
+                'name': name,
+                'visible': visible,
+            })
+    
+    
+    def nicklist_refresh(self):
+        """Refresh nicklist."""
+        #self.widget.nicklist.clear()
+        for group in sorted(self.nicklist):
+            for nick in sorted(self.nicklist[group]['nicks'],
+                               key=lambda n: n['name']):
+                self.nicklist_data.append((nick['name'],))
+              #  prefix_color = {
+              #      '': '',
+              #      ' ': '',
+              #      '+': 'yellow',
+              #  }
+                #color = prefix_color.get(nick['prefix'], 'green')
+                #if color:
+                #    icon = QtGui.QIcon(
+                 #       resource_filename(__name__,
+                 #                         'data/icons/bullet_%s_8x8.png' %
+                 #                         color))
+               # else:
+                  #  pixmap = QtGui.QPixmap(8, 8)
+                   # pixmap.fill()
+                   # icon = QtGui.QIcon(pixmap)
+                #item = QtGui.QListWidgetItem(icon, nick['name'])
+                #self.widget.nicklist.addItem(item)
+        #self.widget.nicklist.setVisible(True)
+
     def pointer(self):
         """Return pointer on buffer."""
         return self.data.get("__path",[""])[0]
