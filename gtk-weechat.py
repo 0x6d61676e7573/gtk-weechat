@@ -93,8 +93,11 @@ class MainWindow(Gtk.Window):
         print("A message was receieved! / Gtk main window.")
         try:
             proto = protocol.Protocol()
-            decoded_message = proto.decode(message.get_data())
-            self.parse_message(decoded_message)
+            if len(message.get_data()) >= 5:
+                decoded_message = proto.decode(message.get_data())
+                self.parse_message(decoded_message)
+            else:
+                print("Error, length of received message is {} bytes.".format(len(message.get_data())))
         except:  # noqa: E722
             print('Error while decoding message from WeeChat:\n%s'
                   % traceback.format_exc())
