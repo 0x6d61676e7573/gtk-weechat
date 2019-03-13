@@ -8,7 +8,6 @@ from gi.repository import Gtk
 from gi.repository import GObject
 from gi.repository import GLib
 import sys
-import copy
 
 _PROTO_INIT_CMD = 'init password=mypass,compression=off'
 
