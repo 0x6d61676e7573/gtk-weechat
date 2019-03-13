@@ -201,6 +201,36 @@ class MainWindow(Gtk.Window):
         for index in buffer_refresh:
             self.buffers[index].nicklist_refresh()
             
+    def _parse_nicklist_diff(self, message):
+        """Parse a WeeChat message with a buffer nicklist diff."""
+        buffer_refresh = set()
+        for obj in message.objects:
+            if obj.objtype != 'hda' or \
+               obj.value['path'][-1] != 'nicklist_item':
+                continue
+            group = '__root'
+            for item in obj.value['items']:
+                index = [i for i, b in enumerate(self.buffers)
+                         if b.pointer() == item['__path'][0]]
+                if not index:
+                    continue
+                buffer_refresh.add(index[0])
+                if item['_diff'] == ord('^'):
+                    group = item['name']
+                elif item['_diff'] == ord('+'):
+                    self.buffers[index[0]].nicklist_add_item(
+                        group, item['group'], item['prefix'], item['name'],
+                        item['visible'])
+                elif item['_diff'] == ord('-'):
+                    self.buffers[index[0]].nicklist_remove_item(
+                        group, item['group'], item['name'])
+                elif item['_diff'] == ord('*'):
+                    self.buffers[index[0]].nicklist_update_item(
+                        group, item['group'], item['prefix'], item['name'],
+                        item['visible'])
+        for index in buffer_refresh:
+            self.buffers[index].nicklist_refresh()
+            
     def create_buffer(self, item):
         """Create a new buffer."""
         buf = Buffer(item)

@@ -122,7 +122,7 @@ class Buffer:
     
     def nicklist_refresh(self):
         """Refresh nicklist."""
-        #self.widget.nicklist.clear()
+        self.nicklist_data.clear()
         for group in sorted(self.nicklist):
             for nick in sorted(self.nicklist[group]['nicks'],
                                key=lambda n: n['name']):
@@ -145,6 +145,31 @@ class Buffer:
                 #item = QtGui.QListWidgetItem(icon, nick['name'])
                 #self.widget.nicklist.addItem(item)
         #self.widget.nicklist.setVisible(True)
+        
+    def nicklist_remove_item(self, parent, group, name):
+        """Remove a group/nick from nicklist."""
+        if group:
+            if name in self.nicklist:
+                del self.nicklist[name]
+        else:
+            if parent in self.nicklist:
+                self.nicklist[parent]['nicks'] = [
+                    nick for nick in self.nicklist[parent]['nicks']
+                    if nick['name'] != name
+                ]
+
+    def nicklist_update_item(self, parent, group, prefix, name, visible):
+        """Update a group/nick in nicklist."""
+        if group:
+            if name in self.nicklist:
+                self.nicklist[name]['visible'] = visible
+        else:
+            if parent in self.nicklist:
+                for nick in self.nicklist[parent]['nicks']:
+                    if nick['name'] == name:
+                        nick['prefix'] = prefix
+                        nick['visible'] = visible
+                        break
 
     def pointer(self):
         """Return pointer on buffer."""
