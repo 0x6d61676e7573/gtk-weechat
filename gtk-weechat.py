@@ -21,7 +21,16 @@ class MainWindow(Gtk.Window):
         # Set up GTK Grid
         grid=Gtk.Grid()
         grid.set_orientation(Gtk.Orientation.VERTICAL)
+        grid.set_column_spacing(2)
+        grid.set_row_spacing(2)
         self.add(grid)
+        
+        # Set up a headerbar
+        self.headerbar=Gtk.HeaderBar()
+        self.headerbar.set_has_subtitle(False)
+        self.headerbar.set_title("Gtk-WeeChat")
+        self.headerbar.set_show_close_button(True)
+        grid.attach(self.headerbar,0,0,3,1)
         
         # Set up widget for displaying chatbuffers
         self.textview=Gtk.TextView()
@@ -33,23 +42,23 @@ class MainWindow(Gtk.Window):
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         self.textview.set_buffer(ChatTextEdit())
         self.scrolledwindow.add(self.textview)
-        grid.attach(self.scrolledwindow,1,0,4,1)
+        grid.attach(self.scrolledwindow,1,1,1,1)
         
         # Set up prompt
         self.entry=Gtk.Entry()
-        grid.attach(self.entry,1,1,1,1)
+        grid.attach(self.entry,1,2,2,1)
         self.entry.connect("activate", self.on_send_message)
         
         # Set up main window buttons
-        button_quit = Gtk.Button(label="quit")
-        button_quit.connect("clicked", self.on_button_quit_clicked)
+        #button_quit = Gtk.Button(label="quit")
+        #button_quit.connect("clicked", self.on_button_quit_clicked)
         button_connect=Gtk.Button(label="connect")
         button_connect.connect("clicked",self.on_button_connect_clicked)
         button_disconnect=Gtk.Button(label="disconnect")
         button_disconnect.connect("clicked",self.on_button_disconnect_clicked)
-        grid.attach(button_quit,2,1,1,1)
-        grid.attach(button_connect,3,1,1,1)
-        grid.attach(button_disconnect,4,1,1,1)
+        #self.headerbar.pack_end(button_quit)
+        self.headerbar.pack_start(button_connect)
+        self.headerbar.pack_start(button_disconnect)
         
         # Set up widget for displaing list of chatbuffer indices + names
         self.list_buffers=Gtk.ListStore(int, str)
@@ -63,17 +72,16 @@ class MainWindow(Gtk.Window):
         self.tree.set_activate_on_single_click(True)
         self.tree.set_headers_visible(False)
         self.tree.connect("row-activated", self.on_tree_row_clicked)
-        grid.attach(self.tree,0,0,1,2)
+        grid.attach(self.tree,0,1,1,2)
         
         # Set up widget for displaying nicklist
         tmp=Gtk.ListStore(str)
-        tmp.append(("test",))
         nicklist_renderer=Gtk.CellRendererText()
         nicklist_column=Gtk.TreeViewColumn("something",nicklist_renderer,text=0)
         self.nick_display_widget=Gtk.TreeView(tmp)
         self.nick_display_widget.set_headers_visible(False)
         self.nick_display_widget.append_column(nicklist_column)
-        grid.attach(self.nick_display_widget,5,0,1,3)
+        grid.attach(self.nick_display_widget,2,1,1,1)
         
         # Set up a list of buffer objects, holding data for every buffer
         self.buffers=[Buffer()]
@@ -102,6 +110,7 @@ class MainWindow(Gtk.Window):
         print("Displaying buffer with index {}.".format(index))
         self.textview.set_buffer(self.buffers[index].widget.chat)
         self.nick_display_widget.set_model(self.buffers[index].nicklist_data)
+        self.headerbar.set_title(self.buffers[index].data["short_name"])
         
     def on_send_message(self, source_object):
         text=copy.deepcopy(self.entry.get_text()) #returned string can not be stored
@@ -111,6 +120,7 @@ class MainWindow(Gtk.Window):
             message = 'input %s %s\n' % (full_name, text)
             self.net.send_to_weechat(message)
             self.entry.get_buffer().delete_text(0,-1)
+            
         
         
     def _network_weechat_msg(self, source_object, message):
@@ -179,6 +189,9 @@ class MainWindow(Gtk.Window):
                          (item['date'], item['prefix'],
                           item['message']))
                     )
+                    if index[0] == self.get_active_buffer():
+                        self.textview.scroll_to_iter(self.buffers[index[0]].widget.chat.get_end_iter(),
+                            0.0,True,1.0,1.0)
             if message.msgid == 'listlines':
                 lines.reverse()
             for line in lines:
