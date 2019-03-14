@@ -5,6 +5,7 @@ from network import Network
 import protocol
 from buffer import Buffer, ChatTextEdit
 import config
+import copy 
 
 class MainWindow(Gtk.Window):
     """GTK Main Window."""
@@ -35,8 +36,9 @@ class MainWindow(Gtk.Window):
         grid.attach(self.scrolledwindow,1,0,4,1)
         
         # Set up prompt
-        entry=Gtk.Entry()
-        grid.attach(entry,1,1,1,1)
+        self.entry=Gtk.Entry()
+        grid.attach(self.entry,1,1,1,1)
+        self.entry.connect("activate", self.on_send_message)
         
         # Set up main window buttons
         button_quit = Gtk.Button(label="quit")
@@ -100,6 +102,16 @@ class MainWindow(Gtk.Window):
         print("Displaying buffer with index {}.".format(index))
         self.textview.set_buffer(self.buffers[index].widget.chat)
         self.nick_display_widget.set_model(self.buffers[index].nicklist_data)
+        
+    def on_send_message(self, source_object):
+        text=copy.deepcopy(self.entry.get_text()) #returned string can not be stored
+        index=self.get_active_buffer()
+        if index:
+            full_name=self.buffers[index].data["full_name"]
+            message = 'input %s %s\n' % (full_name, text)
+            self.net.send_to_weechat(message)
+            self.entry.get_buffer().delete_text(0,-1)
+        
         
     def _network_weechat_msg(self, source_object, message):
         """Called when a message is received from WeeChat."""
@@ -308,6 +320,16 @@ class MainWindow(Gtk.Window):
                   'list by default')
             index = len(self.buffers)
         return index
+        
+    def get_active_buffer(self):
+        selection=self.tree.get_selection()
+        if selection.count_selected_rows() != 1:
+            print("No selected row")
+            return None
+        selected=selection.get_selected_rows()[1]
+        if selected:
+            path=selected[0]
+            return path.get_indices()[0]
 
 # Start the application 
 win = MainWindow()
