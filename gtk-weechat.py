@@ -13,6 +13,7 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="Gtk-weechat")
         self.connect("destroy", Gtk.main_quit)
+        
         # Get the settings from the config file
         self.config=config.read()
         
@@ -142,18 +143,11 @@ class MainWindow(Gtk.Window):
             if obj.objtype != 'hda' or obj.value['path'][-1] != 'buffer':
                 continue
             self.list_buffers.clear()
-            ###SEEMS TO CLEAR STACKED BUFFERS: ###
-           # while self.stacked_buffers.count() > 0:
-           #     buf = self.stacked_buffers.widget(0)
-           #     self.stacked_buffers.removeWidget(buf)
             self.buffers = []
             for item in obj.value['items']:
-                self.list_buffers.append( (item["number"], item["full_name"]) )
                 buf = self.create_buffer(item)
                 self.insert_buffer(len(self.buffers), buf)
-            #self.list_buffers.setCurrentRow(0)
-            #self.buffers[0].widget.input.setFocus()
-            
+
     def _parse_line(self, message):
         """Parse a WeeChat message with a buffer line."""
         for obj in message.objects:
@@ -231,7 +225,6 @@ class MainWindow(Gtk.Window):
         for index in buffer_refresh:
             self.buffers[index].nicklist_refresh()
             
-            
     def _parse_buffer_opened(self, message):
         """Parse a WeeChat message with a new buffer (opened)."""
         for obj in message.objects:
@@ -265,12 +258,14 @@ class MainWindow(Gtk.Window):
                     index2 = self.find_buffer_index_for_insert(
                         item['next_buffer'])
                     self.insert_buffer(index2, buf)
+                    #TODO change/updateliststore rows
                 elif message.msgid == '_buffer_renamed':
                     self.buffers[index].data['full_name'] = item['full_name']
                     self.buffers[index].data['short_name'] = item['short_name']
                 elif message.msgid == '_buffer_title_changed':
                     self.buffers[index].data['title'] = item['title']
-                    self.buffers[index].update_title()
+                    pass #TODO
+                    #self.buffers[index].update_title()
                 elif message.msgid == '_buffer_cleared':
                     self.buffers[index].widget.chat.delete(
                         *self.buffers[index].widget.chat.get_bounds())
@@ -287,15 +282,32 @@ class MainWindow(Gtk.Window):
         buf = Buffer(item)
         return buf
 
-    def insert_buffer(self, index, buf):
-        """Insert a buffer in list."""
-        self.buffers.insert(index, buf)
-
     def remove_buffer(self, index):
         """Remove a buffer."""
         self.list_buffers.remove(self.list_buffers.get_iter_from_string(str(index)))
         self.buffers.pop(index)
         #TODO change selected buffer
+
+    def insert_buffer(self, index, buf):
+        """Insert a buffer in list."""
+        self.buffers.insert(index, buf)
+        self.list_buffers.insert(index, (buf.data["number"], buf.data["full_name"]) )       
+
+    def find_buffer_index_for_insert(self, next_buffer):
+        """Find position to insert a buffer in list."""
+        index = -1
+        if next_buffer == '0x0':
+            index = len(self.buffers)
+        else:
+            index = [i for i, b in enumerate(self.buffers)
+                     if b.pointer() == next_buffer]
+            if index:
+                index = index[0]
+        if index < 0:
+            print('Warning: unable to find position for buffer, using end of '
+                  'list by default')
+            index = len(self.buffers)
+        return index
 
 # Start the application 
 win = MainWindow()
