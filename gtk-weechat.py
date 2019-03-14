@@ -231,24 +231,71 @@ class MainWindow(Gtk.Window):
         for index in buffer_refresh:
             self.buffers[index].nicklist_refresh()
             
+            
+    def _parse_buffer_opened(self, message):
+        """Parse a WeeChat message with a new buffer (opened)."""
+        for obj in message.objects:
+            if obj.objtype != 'hda' or obj.value['path'][-1] != 'buffer':
+                continue
+            for item in obj.value['items']:
+                buf = self.create_buffer(item)
+                index = self.find_buffer_index_for_insert(item['next_buffer'])
+                self.insert_buffer(index, buf)
+
+    def _parse_buffer(self, message):
+        """Parse a WeeChat message with a buffer event
+        (anything except a new buffer).
+        """
+        for obj in message.objects:
+            if obj.objtype != 'hda' or obj.value['path'][-1] != 'buffer':
+                continue
+            for item in obj.value['items']:
+                index = [i for i, b in enumerate(self.buffers)
+                         if b.pointer() == item['__path'][0]]
+                if not index:
+                    continue
+                index = index[0]
+                if message.msgid == '_buffer_type_changed':
+                    self.buffers[index].data['type'] = item['type']
+                elif message.msgid in ('_buffer_moved', '_buffer_merged',
+                                       '_buffer_unmerged'):
+                    buf = self.buffers[index]
+                    buf.data['number'] = item['number']
+                    self.remove_buffer(index)
+                    index2 = self.find_buffer_index_for_insert(
+                        item['next_buffer'])
+                    self.insert_buffer(index2, buf)
+                elif message.msgid == '_buffer_renamed':
+                    self.buffers[index].data['full_name'] = item['full_name']
+                    self.buffers[index].data['short_name'] = item['short_name']
+                elif message.msgid == '_buffer_title_changed':
+                    self.buffers[index].data['title'] = item['title']
+                    self.buffers[index].update_title()
+                elif message.msgid == '_buffer_cleared':
+                    self.buffers[index].widget.chat.delete(
+                        *self.buffers[index].widget.chat.get_bounds())
+                elif message.msgid.startswith('_buffer_localvar_'):
+                    self.buffers[index].data['local_variables'] = \
+                        item['local_variables']
+                    pass #TODO 
+                    #self.buffers[index].update_prompt()
+                elif message.msgid == '_buffer_closing':
+                    self.remove_buffer(index)
+                    
     def create_buffer(self, item):
         """Create a new buffer."""
         buf = Buffer(item)
-       #buf.bufferInput.connect(self.buffer_input)
-       #buf.widget.input.bufferSwitchPrev.connect(
-       #     self.list_buffers.switch_prev_buffer)
-       #buf.widget.input.bufferSwitchNext.connect(
-       #    self.list_buffers.switch_next_buffer)
         return buf
 
     def insert_buffer(self, index, buf):
         """Insert a buffer in list."""
         self.buffers.insert(index, buf)
-        #self.list_buffers.insertItem(index, '%d. %s'
-        #                             % (buf.data['number'],
-        #                                buf.data['full_name'].decode('utf-8')))
-        #self.stacked_buffers.insertWidget(index, buf.widget)
 
+    def remove_buffer(self, index):
+        """Remove a buffer."""
+        self.list_buffers.remove(self.list_buffers.get_iter_from_string(str(index)))
+        self.buffers.pop(index)
+        #TODO change selected buffer
 
 # Start the application 
 win = MainWindow()
