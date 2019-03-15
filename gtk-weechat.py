@@ -34,7 +34,6 @@ class MainWindow(Gtk.Window):
         Gtk.Window.__init__(self, title="Gtk-weechat")
         self.set_default_size(800,600)
         self.connect("destroy", Gtk.main_quit)
-        self.set_decorated(False)
         
         # Get the settings from the config file
         self.config=config.read()
@@ -52,7 +51,7 @@ class MainWindow(Gtk.Window):
         self.headerbar.set_title("Gtk-WeeChat")
         self.headerbar.set_subtitle(None)
         self.headerbar.set_show_close_button(True)
-        grid.attach(self.headerbar,0,0,3,1)
+        self.set_titlebar(self.headerbar)
         
         # Set up widget for displaying chatbuffers
         self.textview=Gtk.TextView()
@@ -65,21 +64,18 @@ class MainWindow(Gtk.Window):
         self.textview.set_monospace(True)
         self.textview.set_buffer(ChatTextEdit())
         self.scrolledwindow.add(self.textview)
-        grid.attach(self.scrolledwindow,1,1,1,1)
+        grid.attach(self.scrolledwindow,1,0,1,1)
         
         # Set up prompt
         self.entry=Gtk.Entry()
-        grid.attach(self.entry,1,2,2,1)
+        grid.attach(self.entry,1,1,2,1)
         self.entry.connect("activate", self.on_send_message)
         
         # Set up main window buttons
-        #button_quit = Gtk.Button(label="quit")
-        #button_quit.connect("clicked", self.on_button_quit_clicked)
         button_connect=Gtk.Button(label="connect")
         button_connect.connect("clicked",self.on_button_connect_clicked)
         button_disconnect=Gtk.Button(label="disconnect")
         button_disconnect.connect("clicked",self.on_button_disconnect_clicked)
-        #self.headerbar.pack_end(button_quit)
         self.headerbar.pack_start(button_connect)
         self.headerbar.pack_start(button_disconnect)
         
@@ -95,7 +91,7 @@ class MainWindow(Gtk.Window):
         self.tree.set_activate_on_single_click(True)
         self.tree.set_headers_visible(False)
         self.tree.connect("row-activated", self.on_tree_row_clicked)
-        grid.attach(self.tree,0,1,1,2)
+        grid.attach(self.tree,0,0,1,2)
         
         # Set up widget for displaying nicklist
         tmp=Gtk.ListStore(str)
@@ -104,7 +100,7 @@ class MainWindow(Gtk.Window):
         self.nick_display_widget=Gtk.TreeView(tmp)
         self.nick_display_widget.set_headers_visible(False)
         self.nick_display_widget.append_column(nicklist_column)
-        grid.attach(self.nick_display_widget,2,1,1,1)
+        grid.attach(self.nick_display_widget,2,0,1,1)
         
         # Set up a list of buffer objects, holding data for every buffer
         self.buffers=[Buffer()]
