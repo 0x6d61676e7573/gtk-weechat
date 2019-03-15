@@ -14,7 +14,6 @@ Keep track of connection status and display in GUI.
 Implement a way to change connection details and save settings.
 Fix disconnect code.
 Add header with GPL stuff + credit to original qweechat author to all files.
-Make window defeault size sane.
 Make window resizable/draggable.
 Indicate buffer activity in GUI.
 Indicate user flags like op/voice in nicklist.
