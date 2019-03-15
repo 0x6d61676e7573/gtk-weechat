@@ -54,6 +54,8 @@ class Network(GObject.GObject):
       
     def connect_weechat(self):
         """Sets up a socket connected to the WeeChat relay."""
+        if self.cancel_network_reads.is_cancelled:
+            self.cancel_network_reads.reset()
         self.socketclient.connect_async(self.adr,None,self.connected_func,None)
       
     def connected_func(self, source_object, res, *user_data):
@@ -71,7 +73,14 @@ class Network(GObject.GObject):
     def get_message(self, source_object, res, *user_data):
         """Callback function to read network data, split it into"""
         """WeeChat messages that are passed on to the application."""
-        gbytes=self.input.read_bytes_finish(res)
+        try:
+            gbytes=self.input.read_bytes_finish(res)
+        except GLib.Error as err:
+            if err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.CANCELLED):
+                print("Stopped listening for server messages.")
+                return
+            else:
+                raise
         if gbytes is None:
             #Error, try again
             self.input.read_bytes_async(4096,0,self.cancel_network_reads,self.get_message)

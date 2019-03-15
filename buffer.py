@@ -30,6 +30,8 @@ class ChatTextEdit(Gtk.TextBuffer):
         #The default color codes
         self._textcolor = None; #self.textColor()
         self._bgcolor = None; #QtGui.QColor('#FFFFFF')
+
+
        # self._setcolorcode = {
        #     'F': (self.setTextColor, self._textcolor),
        #     'B': (self.setTextBackgroundColor, self._bgcolor)

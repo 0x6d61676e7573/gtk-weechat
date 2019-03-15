@@ -31,7 +31,7 @@ class MainWindow(Gtk.Window):
     """Should probably switch to GTK Application class later on, """
     """but does not matter now."""
     def __init__(self):
-        Gtk.Window.__init__(self, title="Gtk-weechat")
+        Gtk.Window.__init__(self, title="Gtk-WeeChat")
         self.set_default_size(800,600)
         self.connect("destroy", Gtk.main_quit)
         
@@ -49,7 +49,7 @@ class MainWindow(Gtk.Window):
         self.headerbar=Gtk.HeaderBar()
         self.headerbar.set_has_subtitle(True)
         self.headerbar.set_title("Gtk-WeeChat")
-        self.headerbar.set_subtitle(None)
+        self.headerbar.set_subtitle("Not connected.")
         self.headerbar.set_show_close_button(True)
         self.set_titlebar(self.headerbar)
         
@@ -64,6 +64,7 @@ class MainWindow(Gtk.Window):
         self.textview.set_monospace(True)
         self.textview.set_buffer(ChatTextEdit())
         self.scrolledwindow.add(self.textview)
+        self.adjustment=self.scrolledwindow.get_vadjustment()
         grid.attach(self.scrolledwindow,1,0,1,1)
         
         # Set up prompt
@@ -109,19 +110,26 @@ class MainWindow(Gtk.Window):
         self.net=Network()
         self.net.connect("messageFromWeechat",self._network_weechat_msg)
 
-    def on_button_quit_clicked(self, widget):
-        """Callback function for when the quit button is clicked."""
-        Gtk.main_quit()
+    #def on_button_quit_clicked(self, widget):
+    #    """Callback function for when the quit button is clicked."""
+    #    Gtk.main_quit()
         
     def on_button_connect_clicked(self, widget):
         """Callback function for when the connect button is clicked."""
         print("Connecting")
+        self.headerbar.set_subtitle("Connecting...")
         self.net.connect_weechat()
         
     def on_button_disconnect_clicked(self, widget):
         """Callback function for when the disconnect button is clicked."""
         print("Disonnecting")
         self.net.disconnect_weechat()
+        self.textview.set_buffer(ChatTextEdit())
+        self.list_buffers.clear()
+        self.nick_display_widget.set_model(None)
+        self.buffers=[]
+        self.headerbar.set_title("Gtk-WeeChat")
+        self.headerbar.set_subtitle("Not connected.")
         
     def on_tree_row_clicked(self, soure_object, path, column):
         """Callback for when a buffer is clicked on in the TreeView."""
@@ -141,8 +149,6 @@ class MainWindow(Gtk.Window):
             self.net.send_to_weechat(message)
             self.entry.get_buffer().delete_text(0,-1)
             
-        
-        
     def _network_weechat_msg(self, source_object, message):
         """Called when a message is received from WeeChat."""
         print("A message was receieved! / Gtk main window.")
