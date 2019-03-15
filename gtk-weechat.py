@@ -14,6 +14,7 @@ class MainWindow(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="Gtk-weechat")
         self.connect("destroy", Gtk.main_quit)
+        self.set_decorated(False)
         
         # Get the settings from the config file
         self.config=config.read()
@@ -21,14 +22,15 @@ class MainWindow(Gtk.Window):
         # Set up GTK Grid
         grid=Gtk.Grid()
         grid.set_orientation(Gtk.Orientation.VERTICAL)
-        grid.set_column_spacing(2)
-        grid.set_row_spacing(2)
+        grid.set_column_spacing(3)
+        grid.set_row_spacing(3)
         self.add(grid)
         
         # Set up a headerbar
         self.headerbar=Gtk.HeaderBar()
-        self.headerbar.set_has_subtitle(False)
+        self.headerbar.set_has_subtitle(True)
         self.headerbar.set_title("Gtk-WeeChat")
+        self.headerbar.set_subtitle(None)
         self.headerbar.set_show_close_button(True)
         grid.attach(self.headerbar,0,0,3,1)
         
@@ -40,6 +42,7 @@ class MainWindow(Gtk.Window):
         self.textview.set_cursor_visible(False)
         self.textview.set_editable(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        self.textview.set_monospace(True)
         self.textview.set_buffer(ChatTextEdit())
         self.scrolledwindow.add(self.textview)
         grid.attach(self.scrolledwindow,1,1,1,1)
@@ -61,12 +64,12 @@ class MainWindow(Gtk.Window):
         self.headerbar.pack_start(button_disconnect)
         
         # Set up widget for displaing list of chatbuffer indices + names
-        self.list_buffers=Gtk.ListStore(int, str)
+        self.list_buffers=Gtk.ListStore(str, str)
         self.tree=Gtk.TreeView(self.list_buffers)
         self.renderer=Gtk.CellRendererText()
         self.renderer2=Gtk.CellRendererText()
-        self.column=Gtk.TreeViewColumn("#",self.renderer,text=0)
-        self.column2=Gtk.TreeViewColumn("Name",self.renderer2,text=1)
+        self.column=Gtk.TreeViewColumn("Name",self.renderer,text=0)
+        self.column2=Gtk.TreeViewColumn("#",self.renderer2,text=1)
         self.tree.append_column(self.column)
         self.tree.append_column(self.column2)
         self.tree.set_activate_on_single_click(True)
@@ -111,6 +114,7 @@ class MainWindow(Gtk.Window):
         self.textview.set_buffer(self.buffers[index].widget.chat)
         self.nick_display_widget.set_model(self.buffers[index].nicklist_data)
         self.headerbar.set_title(self.buffers[index].data["short_name"])
+        self.headerbar.set_subtitle(self.buffers[index].data["title"])
         
     def on_send_message(self, source_object):
         text=copy.deepcopy(self.entry.get_text()) #returned string can not be stored
@@ -316,7 +320,11 @@ class MainWindow(Gtk.Window):
     def insert_buffer(self, index, buf):
         """Insert a buffer in list."""
         self.buffers.insert(index, buf)
-        self.list_buffers.insert(index, (buf.data["number"], buf.data["full_name"]) )       
+        if buf.data["short_name"]:
+            name=buf.data["short_name"]
+        else:
+            name=buf.data["full_name"]
+        self.list_buffers.insert(index, (name,"[{}]".format(buf.data["number"]) ))       
 
     def find_buffer_index_for_insert(self, next_buffer):
         """Find position to insert a buffer in list."""
