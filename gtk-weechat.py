@@ -109,10 +109,6 @@ class MainWindow(Gtk.Window):
         # Set up the network module
         self.net=Network()
         self.net.connect("messageFromWeechat",self._network_weechat_msg)
-
-    #def on_button_quit_clicked(self, widget):
-    #    """Callback function for when the quit button is clicked."""
-    #    Gtk.main_quit()
         
     def on_button_connect_clicked(self, widget):
         """Callback function for when the connect button is clicked."""
