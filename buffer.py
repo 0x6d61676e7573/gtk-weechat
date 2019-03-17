@@ -18,7 +18,7 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GObject
 import color
 import config
 
@@ -134,7 +134,6 @@ class BufferWidget(Gtk.Grid):
         # Entry widget
         self.entry=Gtk.Entry()
         self.attach(self.entry,0,1,2,1)
-        #self.entry.connect("activate", self.on_send_message)
         
         # Nicklist widget
         nicklist_renderer=Gtk.CellRendererText()
@@ -142,7 +141,10 @@ class BufferWidget(Gtk.Grid):
         self.nick_display_widget=Gtk.TreeView()
         self.nick_display_widget.set_headers_visible(False)
         self.nick_display_widget.append_column(nicklist_column)
-        self.attach(self.nick_display_widget,1,0,1,1)
+        scrolledwindow=Gtk.ScrolledWindow()
+        scrolledwindow.set_propagate_natural_width(True)
+        scrolledwindow.add(self.nick_display_widget)
+        self.attach(scrolledwindow,1,0,1,1)
         
     def scrollbottom(self):
         """Scrolls textview widget to it's bottom state."""
@@ -150,12 +152,18 @@ class BufferWidget(Gtk.Grid):
         self.adjustment.set_value(value)
 
         
-class Buffer:
+class Buffer(GObject.GObject):
     """A WeeChat buffer that holds buffer data."""
+    __gsignals__ = {
+        'messageToWeechat' : (GObject.SIGNAL_RUN_LAST, None,
+                            (Gtk.Widget,))
+        }
     def __init__(self, data={}):
+        GObject.GObject.__init__(self)
         self.data=data
         self.nicklist={}
         self.widget=BufferWidget()
+        self.widget.entry.connect("activate", self.on_send_message)
         self.nicklist_data=Gtk.ListStore(str)
         self.chat=ChatTextBuffer()
         self.widget.textview.set_buffer(self.chat)
@@ -225,6 +233,9 @@ class Buffer:
                         nick['prefix'] = prefix
                         nick['visible'] = visible
                         break
+                        
+    def on_send_message(self, source_object):
+        self.emit("messageToWeechat", source_object)
 
     def pointer(self):
         """Return pointer on buffer."""

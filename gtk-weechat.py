@@ -22,16 +22,16 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from network import Network
 import protocol
-from buffer import Buffer#, ChatTextEdit
+from buffer import Buffer
 import config
 import copy 
 
 FUN_MSG="\n\n\n\n\n\n\n\n\n\n\n\n"\
-"      _______  _________ __   ___       __         ______________        _____   \n"\
-"     ___  ___\/__  __/ // /   __ |     / /___________  ____/__  /_______ __  /_  \n"\
-"     __  / ___ _  / /   _/ __ __ | /| / /_  _ \  _ \  /    __  __ \  __ `/  __/  \n"\
-"     ___ |_/ /_  / / /\ \     __ |/ |/ / /  __/  __/ /___  _  / / / /_/ // /_    \n"\
-"      ______/ /_/ /_/ /_/     ____/|__/  \___/\___/\____/  /_/ /_/\__,_/ \__/    \n"
+" _______  _________ __   ___       __         ______________        _____ \n"\
+"___  ___\/__  __/ // /   __ |     / /___________  ____/__  /_______ __  /_\n"\
+"__  / ___ _  / /   _/ __ __ | /| / /_  _ \  _ \  /    __  __ \  __ `/  __/\n"\
+"___ |_/ /_  / / /\ \     __ |/ |/ / /  __/  __/ /___  _  / / / /_/ // /_  \n"\
+" ______/ /_/ /_/ /_/     ____/|__/  \___/\___/\____/  /_/ /_/\__,_/ \__/  \n"
 
 
 
@@ -41,7 +41,7 @@ class MainWindow(Gtk.Window):
     """but does not matter now."""
     def __init__(self):
         Gtk.Window.__init__(self, title="Gtk-WeeChat")
-        self.set_default_size(800,600)
+        self.set_default_size(950,700)
         self.connect("destroy", Gtk.main_quit)
         
         # Get the settings from the config file
@@ -98,7 +98,11 @@ class MainWindow(Gtk.Window):
         self.tree.set_activate_on_single_click(True)
         self.tree.set_headers_visible(False)
         self.tree.connect("row-activated", self.on_tree_row_clicked)
-        grid.attach(self.tree,0,0,1,1)
+        treescrolledwindow=Gtk.ScrolledWindow()
+        treescrolledwindow.add(self.tree)
+        treescrolledwindow.set_propagate_natural_width(True)
+        treescrolledwindow.set_min_content_width(100)
+        grid.attach(treescrolledwindow,0,0,1,1)
         
         # Set up the network module
         self.net=Network()
@@ -134,14 +138,12 @@ class MainWindow(Gtk.Window):
         self.headerbar.set_title(self.buffers[index].data["short_name"])
         self.headerbar.set_subtitle(self.buffers[index].data["title"])
         
-    def on_send_message(self, source_object):
-        text=copy.deepcopy(source_object.get_text()) #returned string can not be stored
-        index=self.get_active_buffer()
-        if index:
-            full_name=self.buffers[index].data["full_name"]
-            message = 'input %s %s\n' % (full_name, text)
-            self.net.send_to_weechat(message)
-            source_object.get_buffer().delete_text(0,-1)
+    def on_send_message(self, source_object, entry):
+        text=copy.deepcopy(entry.get_text()) #returned string can not be stored        
+        full_name=source_object.data["full_name"]
+        message = 'input %s %s\n' % (full_name, text)
+        self.net.send_to_weechat(message)
+        entry.get_buffer().delete_text(0,-1)
             
     def _network_weechat_msg(self, source_object, message):
         """Called when a message is received from WeeChat."""
@@ -189,7 +191,7 @@ class MainWindow(Gtk.Window):
                 buf = self.create_buffer(item)
                 self.insert_buffer(len(self.buffers), buf)
                 self.stack.add_named(buf.widget, item["__path"][0])
-                buf.widget.entry.connect("activate", self.on_send_message)
+                buf.connect("messageToWeechat", self.on_send_message)
 
     def _parse_line(self, message):
         """Parse a WeeChat message with a buffer line."""
@@ -210,12 +212,14 @@ class MainWindow(Gtk.Window):
                          (item['date'], item['prefix'],
                           item['message']))
                     )
-### TODO: Scroll to bottom if window is in bottom state
             if message.msgid == 'listlines':
                 lines.reverse()
             for line in lines:
                 self.buffers[line[0]].chat.display(*line[1])
                 self.buffers[line[0]].widget.scrollbottom()
+            # Trying not to freeze GUI on e.g. /list:
+            while Gtk.events_pending():
+                Gtk.main_iteration()         
                 
 
     def _parse_nicklist(self, message):
@@ -279,13 +283,11 @@ class MainWindow(Gtk.Window):
             for item in obj.value['items']:
                 buf = self.create_buffer(item)
                 index = self.find_buffer_index_for_insert(item['next_buffer'])
-                print(item)
-                print(buf.data["full_name"])
-                print(buf.data["short_name"])
                 self.insert_buffer(index, buf)
                 self.stack.add_named(buf.widget, item["__path"][0])
                 self.tree.get_selection().select_path(Gtk.TreePath([index]))
                 self.show_buffer_by_index(index)
+                buf.connect("messageToWeechat", self.on_send_message)
                 
 
     def _parse_buffer(self, message):
@@ -336,17 +338,20 @@ class MainWindow(Gtk.Window):
 
     def remove_buffer(self, index):
         """Remove a buffer."""
-        self.list_buffers.remove(self.list_buffers.get_iter_from_string(str(index)))
-        self.buffers.pop(index)
-        #TODO change selected buffer
+        if index>0:
+            new_index=index-1
+            self.tree.get_selection().select_path(Gtk.TreePath([new_index]))
+            self.show_buffer_by_index(new_index)
+            self.list_buffers.remove(self.list_buffers.get_iter_from_string(str(index)))
+            self.buffers.pop(index)
+        else:
+            return #main buffer can't be closed
 
     def insert_buffer(self, index, buf):
         """Insert a buffer in list."""
         self.buffers.insert(index, buf)
         if buf.data["short_name"]:
             name=buf.data["short_name"]
-        #elif buf.data["name"]:
-        #    name=buf.data["name"].split(".")[1]
         else:
             name=buf.data["full_name"]
         self.list_buffers.insert(index, (name,"[{}]".format(buf.data["number"]) ))       
