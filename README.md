@@ -7,7 +7,6 @@ PyGObject
 
 # TODO:
 High priority (pre-alpha stuff):
-Fix auto scroll.
 Fix buffer moved/closed/opened events (make sure correct buffer get focus).
 Respect background + font attribute code.
 Keep track of connection status and display in GUI.
@@ -19,8 +18,6 @@ Add autoconnect setting.
 Some basic keyboard shortcuts like switch buffer.
 Change bufferlist background color.
 Add option for change of color scheme.
-
-
 
 Maybe:
 CHange the way to keep track of which buffer is in focus (currently done by complicated query of the treeview widget). 

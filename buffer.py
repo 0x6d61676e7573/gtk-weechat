@@ -22,7 +22,7 @@ from gi.repository import Gtk, Gdk
 import color
 import config
 
-class ChatTextEdit(Gtk.TextBuffer):
+class ChatTextBuffer(Gtk.TextBuffer):
     """Textbuffer to store buffer text."""
     def __init__(self):
         Gtk.TextBuffer.__init__(self)
@@ -30,7 +30,6 @@ class ChatTextEdit(Gtk.TextBuffer):
         #The default color codes
         self._textcolor = None; #self.textColor()
         self._bgcolor = None; #QtGui.QColor('#FFFFFF')
-
 
        # self._setcolorcode = {
        #     'F': (self.setTextColor, self._textcolor),
@@ -101,7 +100,7 @@ class ChatTextEdit(Gtk.TextBuffer):
                     item = item[pos+1:]
             if len(item) > 0:
                 self.insert_with_tags(self.get_end_iter(),item, tag)
-
+        
     def _reset_attributes(self):
         pass
         #self._font = {}
@@ -113,12 +112,44 @@ class ChatTextEdit(Gtk.TextBuffer):
         #self._font[attr] = value
         #self._setfont[attr](self._fontvalues[self._font[attr]][attr])
         
-class BufferWidget():
+class BufferWidget(Gtk.Grid):
     """Class that so far only adds a layer of indirection."""
     """In qweechat, this class also has nicklist and text entry widgets."""
     def __init__(self):
-        self.chat=ChatTextEdit()
+        Gtk.Grid.__init__(self)
+        
+        # TextView widget
+        self.textview=Gtk.TextView()
+        self.scrolledwindow=Gtk.ScrolledWindow()
+        self.scrolledwindow.set_hexpand(True)
+        self.scrolledwindow.set_vexpand(True)
+        self.textview.set_cursor_visible(False)
+        self.textview.set_editable(False)
+        self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        self.textview.set_monospace(True)
+        self.scrolledwindow.add(self.textview)
+        self.attach(self.scrolledwindow,0,0,1,1)
+        self.adjustment=self.textview.get_vadjustment()
+        
+        # Entry widget
+        self.entry=Gtk.Entry()
+        self.attach(self.entry,0,1,2,1)
+        #self.entry.connect("activate", self.on_send_message)
+        
+        # Nicklist widget
+        nicklist_renderer=Gtk.CellRendererText()
+        nicklist_column=Gtk.TreeViewColumn("",nicklist_renderer,text=0)
+        self.nick_display_widget=Gtk.TreeView()
+        self.nick_display_widget.set_headers_visible(False)
+        self.nick_display_widget.append_column(nicklist_column)
+        self.attach(self.nick_display_widget,1,0,1,1)
+        
+    def scrollbottom(self):
+        """Scrolls textview widget to it's bottom state."""
+        value=self.adjustment.get_upper()-self.adjustment.get_page_size()
+        self.adjustment.set_value(value)
 
+        
 class Buffer:
     """A WeeChat buffer that holds buffer data."""
     def __init__(self, data={}):
@@ -126,6 +157,9 @@ class Buffer:
         self.nicklist={}
         self.widget=BufferWidget()
         self.nicklist_data=Gtk.ListStore(str)
+        self.chat=ChatTextBuffer()
+        self.widget.textview.set_buffer(self.chat)
+        self.widget.nick_display_widget.set_model(self.nicklist_data)
     
     def nicklist_add_item(self, parent, group, prefix, name, visible):
         """Add a group/nick in nicklist."""
@@ -140,7 +174,6 @@ class Buffer:
                 'name': name,
                 'visible': visible,
             })
-    
     
     def nicklist_refresh(self):
         """Refresh nicklist."""
