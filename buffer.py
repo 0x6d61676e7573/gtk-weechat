@@ -170,6 +170,9 @@ class Buffer(GObject.GObject):
         self.chat=ChatTextBuffer()
         self.widget.textview.set_buffer(self.chat)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
+        self.colors_for_notify={"default": "black", "mention":"green", "message":"orange", "low":"blue"}
+        self.notify_values={"default": 0, "low": 1, "message":2, "mention":3}
+        self.notify_level="default"
     
     def nicklist_add_item(self, parent, group, prefix, name, visible):
         """Add a group/nick in nicklist."""
@@ -238,7 +241,17 @@ class Buffer(GObject.GObject):
                         
     def on_send_message(self, source_object):
         self.emit("messageToWeechat", source_object)
-
+    
+    def notify_color(self):
+        return self.colors_for_notify[self.notify_level]
+        
+    def set_notify_level(self, notify_level):
+        if self.notify_values[notify_level] > self.notify_values[self.notify_level]:
+            self.notify_level=notify_level 
+    
+    def reset_notify_level():
+        self.notify_level="default"
+        
     def pointer(self):
         """Return pointer on buffer."""
         return self.data.get("__path",[""])[0]

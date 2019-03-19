@@ -87,10 +87,10 @@ class MainWindow(Gtk.Window):
         self.headerbar.pack_start(button_disconnect)
         
         # Set up widget for displaing list of chatbuffer indices + names
-        self.list_buffers=Gtk.ListStore(str)
+        self.list_buffers=Gtk.ListStore(str, str)
         self.tree=Gtk.TreeView(self.list_buffers)
         self.renderer=Gtk.CellRendererText()
-        self.column=Gtk.TreeViewColumn("Name",self.renderer,text=0)
+        self.column=Gtk.TreeViewColumn("Name",self.renderer,text=0, foreground=1)
         self.tree.append_column(self.column)
         self.tree.set_activate_on_single_click(True)
         self.tree.set_headers_visible(False)
@@ -145,6 +145,8 @@ class MainWindow(Gtk.Window):
         self.buffers[index].widget.scrollbottom()
         self.buffers[index].widget.entry.grab_focus()
         self.active_index=index
+        self.buffers[index].reset_notify_level()
+        self.update_buffer_tree()
         
     def on_send_message(self, source_object, entry):
         text=copy.deepcopy(entry.get_text()) #returned string can not be stored        
@@ -208,10 +210,17 @@ class MainWindow(Gtk.Window):
             if obj.objtype != 'hda' or obj.value['path'][-1] != 'line_data':
                 continue
             for item in obj.value['items']:
+                notify_level="default"
                 if message.msgid == 'listlines':
                     ptrbuf = item['__path'][0]
                 else:
                     ptrbuf = item['buffer']
+                    if item["highlight"] or "notify_private" in item["tags_array"]:
+                        notify_level="mention"
+                    elif "notify_message" in item["tags_array"]:
+                        notify_level="message"
+                    else:
+                        notify_level="low"
                 index = [i for i, b in enumerate(self.buffers)
                          if b.pointer() == ptrbuf]
                 if index:
@@ -220,6 +229,7 @@ class MainWindow(Gtk.Window):
                          (item['date'], item['prefix'],
                           item['message']))
                     )
+                    self.buffers[index[0]].set_notify_level(notify_level)
             if message.msgid == 'listlines':
                 lines.reverse()
             for line in lines:
@@ -227,7 +237,8 @@ class MainWindow(Gtk.Window):
                 self.buffers[line[0]].widget.scrollbottom()
             # Trying not to freeze GUI on e.g. /list:
             while Gtk.events_pending():
-                Gtk.main_iteration()         
+                Gtk.main_iteration()
+        self.update_buffer_tree()
 
     def _parse_nicklist(self, message):
         """Parse a WeeChat message with a buffer nicklist."""
@@ -327,11 +338,13 @@ class MainWindow(Gtk.Window):
                                        '_buffer_unmerged'):
                     buf = self.buffers[index]
                     buf.data['number'] = item['number']
-                    self.remove_buffer(index)
+                    oldindex=self.active_index
+                    self.remove_buffer(index, destroy=False)
                     index2 = self.find_buffer_index_for_insert(
                          item['next_buffer'])
                     self.insert_buffer(index2, buf)
                     self.update_buffer_tree()
+                    self.show_buffer_by_index(oldindex)
                 elif message.msgid == '_buffer_renamed':
                     self.buffers[index].data['full_name'] = item['full_name']
                     self.buffers[index].data['short_name'] = item['short_name']
@@ -356,7 +369,7 @@ class MainWindow(Gtk.Window):
         buf = Buffer(item)
         return buf
 
-    def remove_buffer(self, index):
+    def remove_buffer(self, index, destroy=True):
         """Remove a buffer."""
         if index>0:
             if index==self.active_index:
@@ -364,7 +377,8 @@ class MainWindow(Gtk.Window):
                 self.tree.get_selection().select_path(Gtk.TreePath([new_index]))
                 self.show_buffer_by_index(new_index)
             self.list_buffers.remove(self.list_buffers.get_iter_from_string(str(index)))
-            self.buffers[index].widget.destroy()
+            if destroy:
+                self.buffers[index].widget.destroy()
             self.buffers.pop(index)
         else:
             return #main buffer can't be closed
@@ -376,7 +390,7 @@ class MainWindow(Gtk.Window):
             name=buf.data["short_name"]
         else:
             name=buf.data["full_name"]
-        self.list_buffers.insert(index, (name,))       
+        self.list_buffers.insert(index, (name,"black"))
 
     def find_buffer_index_for_insert(self, next_buffer):
         """Find position to insert a buffer in list."""
@@ -400,8 +414,8 @@ class MainWindow(Gtk.Window):
             name=buf.data["short_name"] 
             if name==None:
                 name=buf.data["full_name"]
-            self.list_buffers.insert(index, (name,))
-        if self.active_index:
+            self.list_buffers.insert(index, (name,buf.notify_color()))
+        if self.active_index is not None:
             self.tree.get_selection().select_path(Gtk.TreePath([self.active_index]))
     #TODO 
     def update_headerbar(self):

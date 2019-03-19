@@ -7,12 +7,9 @@ PyGObject
 
 # TODO:
 High priority (pre-alpha stuff):
-Fix buffer moved/closed/opened events (make sure correct buffer get focus).
 Respect background + font attribute code.
 Keep track of connection status and display in GUI.
 Implement a way to change connection details and save settings.
-Indicate buffer activity in GUI.
-Indicate user flags like op/voice in nicklist.
 Change disconnect/connect buttons to be toggled.
 Some basic keyboard shortcuts like switch buffer.
 Change bufferlist background color.
