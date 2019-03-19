@@ -249,7 +249,7 @@ class Buffer(GObject.GObject):
         if self.notify_values[notify_level] > self.notify_values[self.notify_level]:
             self.notify_level=notify_level 
     
-    def reset_notify_level():
+    def reset_notify_level(self):
         self.notify_level="default"
         
     def pointer(self):
