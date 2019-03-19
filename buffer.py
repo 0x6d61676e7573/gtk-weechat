@@ -125,6 +125,7 @@ class BufferWidget(Gtk.Grid):
         self.scrolledwindow.set_vexpand(True)
         self.textview.set_cursor_visible(False)
         self.textview.set_editable(False)
+        self.textview.set_can_focus(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         self.textview.set_monospace(True)
         self.scrolledwindow.add(self.textview)
@@ -140,6 +141,7 @@ class BufferWidget(Gtk.Grid):
         nicklist_column=Gtk.TreeViewColumn("",nicklist_renderer,text=0)
         self.nick_display_widget=Gtk.TreeView()
         self.nick_display_widget.set_headers_visible(False)
+        self.nick_display_widget.set_can_focus(False)
         self.nick_display_widget.append_column(nicklist_column)
         scrolledwindow=Gtk.ScrolledWindow()
         scrolledwindow.set_propagate_natural_width(True)
@@ -189,7 +191,7 @@ class Buffer(GObject.GObject):
         for group in sorted(self.nicklist):
             for nick in sorted(self.nicklist[group]['nicks'],
                                key=lambda n: n['name']):
-                self.nicklist_data.append((nick['name'],))
+                self.nicklist_data.append((nick["prefix"] + nick['name'],))
               #  prefix_color = {
               #      '': '',
               #      ' ': '',

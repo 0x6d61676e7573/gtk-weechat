@@ -48,7 +48,7 @@ class MainWindow(Gtk.Window):
         self.config=config.read()
         
         # Set up a list of buffer objects, holding data for every buffer
-        self.buffers=[Buffer()]
+        self.buffers=[]
         
         # Set up GTK Grid
         grid=Gtk.Grid()
@@ -87,14 +87,11 @@ class MainWindow(Gtk.Window):
         self.headerbar.pack_start(button_disconnect)
         
         # Set up widget for displaing list of chatbuffer indices + names
-        self.list_buffers=Gtk.ListStore(str, str)
+        self.list_buffers=Gtk.ListStore(str)
         self.tree=Gtk.TreeView(self.list_buffers)
         self.renderer=Gtk.CellRendererText()
-        self.renderer2=Gtk.CellRendererText()
         self.column=Gtk.TreeViewColumn("Name",self.renderer,text=0)
-        self.column2=Gtk.TreeViewColumn("#",self.renderer2,text=1)
         self.tree.append_column(self.column)
-        self.tree.append_column(self.column2)
         self.tree.set_activate_on_single_click(True)
         self.tree.set_headers_visible(False)
         self.tree.connect("row-activated", self.on_tree_row_clicked)
@@ -102,17 +99,25 @@ class MainWindow(Gtk.Window):
         treescrolledwindow.add(self.tree)
         treescrolledwindow.set_propagate_natural_width(True)
         treescrolledwindow.set_min_content_width(100)
+        self.tree.set_can_focus(False)
         grid.attach(treescrolledwindow,0,0,1,1)
+        
+        # A pointer to currently active buffer
+        self.active_index=None
         
         # Set up the network module
         self.net=Network()
         self.net.connect("messageFromWeechat",self._network_weechat_msg)
+        if self.config["relay"]["autoconnect"]=="on":
+            self.net.connect_weechat()
         
     def on_button_connect_clicked(self, widget):
         """Callback function for when the connect button is clicked."""
         print("Connecting")
         self.headerbar.set_subtitle("Connecting...")
         self.net.connect_weechat()
+        if self.buffers:
+            self.show_buffer_by_index(0)
         
     def on_button_disconnect_clicked(self, widget):
         """Callback function for when the disconnect button is clicked."""
@@ -123,6 +128,7 @@ class MainWindow(Gtk.Window):
         for buf in self.buffers:
             buf.widget.destroy()
         self.buffers=[]
+        self.active_index=None
         self.headerbar.set_title("Gtk-WeeChat")
         self.headerbar.set_subtitle("Not connected.")
         
@@ -130,13 +136,15 @@ class MainWindow(Gtk.Window):
         """Callback for when a buffer is clicked on in the TreeView."""
         index=path.get_indices()[0]
         self.show_buffer_by_index(index)
-        self.buffers[index].widget.scrollbottom()
         
     def show_buffer_by_index(self, index):
         self.buffers[index].widget.show_all()
         self.stack.set_visible_child(self.buffers[index].widget)
         self.headerbar.set_title(self.buffers[index].data["short_name"])
         self.headerbar.set_subtitle(self.buffers[index].data["title"])
+        self.buffers[index].widget.scrollbottom()
+        self.buffers[index].widget.entry.grab_focus()
+        self.active_index=index
         
     def on_send_message(self, source_object, entry):
         text=copy.deepcopy(entry.get_text()) #returned string can not be stored        
@@ -220,7 +228,6 @@ class MainWindow(Gtk.Window):
             # Trying not to freeze GUI on e.g. /list:
             while Gtk.events_pending():
                 Gtk.main_iteration()         
-                
 
     def _parse_nicklist(self, message):
         """Parse a WeeChat message with a buffer nicklist."""
@@ -284,11 +291,22 @@ class MainWindow(Gtk.Window):
                 buf = self.create_buffer(item)
                 index = self.find_buffer_index_for_insert(item['next_buffer'])
                 self.insert_buffer(index, buf)
+                #self.tree.get_selection().select_path(Gtk.TreePath([index]))
                 self.stack.add_named(buf.widget, item["__path"][0])
-                self.tree.get_selection().select_path(Gtk.TreePath([index]))
-                self.show_buffer_by_index(index)
-                buf.connect("messageToWeechat", self.on_send_message)
+                #self.update_buffer_tree() #insert_buffer() does this
+                while Gtk.events_pending():
+                    Gtk.main_iteration()
+                #print("selecting path with index: ", index)
                 
+                self.show_buffer_by_index(index)
+                self.active_index=index
+                buf.connect("messageToWeechat", self.on_send_message)
+                self.select_tree_index(index)
+                print("rows: ", self.tree.get_selection().count_selected_rows())
+                #self.tree.get_selection().select_path(Gtk.TreePath([index]))
+    
+    def select_tree_index(self,index):
+        self.tree.get_selection().select_path(Gtk.TreePath([index]))
 
     def _parse_buffer(self, message):
         """Parse a WeeChat message with a buffer event
@@ -311,15 +329,17 @@ class MainWindow(Gtk.Window):
                     buf.data['number'] = item['number']
                     self.remove_buffer(index)
                     index2 = self.find_buffer_index_for_insert(
-                        item['next_buffer'])
+                         item['next_buffer'])
                     self.insert_buffer(index2, buf)
-                    #TODO change/updateliststore rows
+                    self.update_buffer_tree()
                 elif message.msgid == '_buffer_renamed':
                     self.buffers[index].data['full_name'] = item['full_name']
                     self.buffers[index].data['short_name'] = item['short_name']
+                    self.update_buffer_tree()
+                    self.update_headerbar()
                 elif message.msgid == '_buffer_title_changed':
                     self.buffers[index].data['title'] = item['title']
-                    self.update_subtitle()
+                    self.update_headerbar()
                 elif message.msgid == '_buffer_cleared':
                     self.buffers[index].chat.delete(
                         *self.buffers[index].chat.get_bounds())
@@ -339,10 +359,12 @@ class MainWindow(Gtk.Window):
     def remove_buffer(self, index):
         """Remove a buffer."""
         if index>0:
-            new_index=index-1
-            self.tree.get_selection().select_path(Gtk.TreePath([new_index]))
-            self.show_buffer_by_index(new_index)
+            if index==self.active_index:
+                new_index=index-1
+                self.tree.get_selection().select_path(Gtk.TreePath([new_index]))
+                self.show_buffer_by_index(new_index)
             self.list_buffers.remove(self.list_buffers.get_iter_from_string(str(index)))
+            self.buffers[index].widget.destroy()
             self.buffers.pop(index)
         else:
             return #main buffer can't be closed
@@ -354,7 +376,7 @@ class MainWindow(Gtk.Window):
             name=buf.data["short_name"]
         else:
             name=buf.data["full_name"]
-        self.list_buffers.insert(index, (name,"[{}]".format(buf.data["number"]) ))       
+        self.list_buffers.insert(index, (name,))       
 
     def find_buffer_index_for_insert(self, next_buffer):
         """Find position to insert a buffer in list."""
@@ -371,18 +393,18 @@ class MainWindow(Gtk.Window):
                   'list by default')
             index = len(self.buffers)
         return index
-        
-    def get_active_buffer(self):
-        selection=self.tree.get_selection()
-        if selection.count_selected_rows() != 1:
-            print("No selected row")
-            return None
-        selected=selection.get_selected_rows()[1]
-        if selected:
-            path=selected[0]
-            return path.get_indices()[0]
+            
+    def update_buffer_tree(self):
+        self.list_buffers.clear()
+        for index, buf in enumerate(self.buffers):
+            name=buf.data["short_name"] 
+            if name==None:
+                name=buf.data["full_name"]
+            self.list_buffers.insert(index, (name,))
+        if self.active_index:
+            self.tree.get_selection().select_path(Gtk.TreePath([self.active_index]))
     #TODO 
-    def update_subtitle(self):
+    def update_headerbar(self):
         pass
 
 # Start the application 

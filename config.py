@@ -34,7 +34,7 @@ CONFIG_DEFAULT_OPTIONS = (('relay.server', ''),
                           ('relay.port', ''),
                           ('relay.ssl', 'off'),
                           ('relay.password', ''),
-                          ('relay.autoconnect', 'off'),
+                          ('relay.autoconnect', 'on'),
                           ('relay.lines', str(CONFIG_DEFAULT_RELAY_LINES)),
                           ('look.debug', 'off'),
                           ('look.statusbar', 'off'))

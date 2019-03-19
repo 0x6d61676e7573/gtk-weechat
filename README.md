@@ -14,7 +14,6 @@ Implement a way to change connection details and save settings.
 Indicate buffer activity in GUI.
 Indicate user flags like op/voice in nicklist.
 Change disconnect/connect buttons to be toggled.
-Add autoconnect setting.
 Some basic keyboard shortcuts like switch buffer.
 Change bufferlist background color.
 Add option for change of color scheme.
