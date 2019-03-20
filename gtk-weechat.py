@@ -215,14 +215,16 @@ class MainWindow(Gtk.Window):
                     ptrbuf = item['__path'][0]
                 else:
                     ptrbuf = item['buffer']
+                    
+                index = [i for i, b in enumerate(self.buffers)
+                         if b.pointer() == ptrbuf]
+                if index[0] != self.active_index and message.msgid != 'listlines':
                     if item["highlight"] or "notify_private" in item["tags_array"]:
                         notify_level="mention"
                     elif "notify_message" in item["tags_array"]:
                         notify_level="message"
                     else:
                         notify_level="low"
-                index = [i for i, b in enumerate(self.buffers)
-                         if b.pointer() == ptrbuf]
                 if index:
                     lines.append(
                         (index[0],
