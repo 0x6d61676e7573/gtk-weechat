@@ -52,6 +52,11 @@ class Network(GObject.GObject):
         self.socketclient= Gio.SocketClient.new()
         if self.config["relay"]["ssl"] == "on":
             self.socketclient.set_tls(True)
+            self.socketclient.set_tls_validation_flags(Gio.TlsCertificateFlags.EXPIRED | 
+                                                        Gio.TlsCertificateFlags.REVOKED | 
+                                                        Gio.TlsCertificateFlags.INSECURE | 
+                                                        Gio.TlsCertificateFlags.NOT_ACTIVATED | 
+                                                        Gio.TlsCertificateFlags.GENERIC_ERROR)
         self.adr=Gio.NetworkAddress.new(self.host,self.port)
         self.cancel_network_reads=Gio.Cancellable()
         self.message_buffer=b''
@@ -60,12 +65,6 @@ class Network(GObject.GObject):
         """Sets up a socket connected to the WeeChat relay."""
         if self.cancel_network_reads.is_cancelled:
             self.cancel_network_reads.reset()
-        if self.config["relay"]["ssl"] == "on":
-            self.socketclient.set_tls_validation_flags(Gio.TlsCertificateFlags.EXPIRED | 
-                                                        Gio.TlsCertificateFlags.REVOKED | 
-                                                        Gio.TlsCertificateFlags.INSECURE | 
-                                                        Gio.TlsCertificateFlags.NOT_ACTIVATED | 
-                                                        Gio.TlsCertificateFlags.GENERIC_ERROR)
         self.socketclient.connect_async(self.adr,None,self.connected_func,None)
       
     def connected_func(self, source_object, res, *user_data):
