@@ -28,8 +28,9 @@ from gi.repository import Gtk
 from gi.repository import GObject
 from gi.repository import GLib
 import sys
+import config
 
-_PROTO_INIT_CMD = 'init password=mypass,compression=off'
+_PROTO_INIT_CMD = 'init password=,compression=on'
 
 _PROTO_SYNC_CMDS = '(listbuffers) hdata buffer:gui_buffers(*) number,full_name,short_name,type,nicklist,title,local_variables\n' \
     '(listlines) hdata buffer:gui_buffers(*)/own_lines/last_line(-80)/'\
@@ -44,10 +45,13 @@ class Network(GObject.GObject):
    
     def __init__(self):
         GObject.GObject.__init__(self)
-        self.host="51.15.111.211"
-        self.port=5001
+        self.config=config.read()
+        self.host=""
+        self.port=
         self.socket=None
         self.socketclient= Gio.SocketClient.new()
+        if self.config["relay"]["ssl"] == "on":
+            self.socketclient.set_tls(True)
         self.adr=Gio.NetworkAddress.new(self.host,self.port)
         self.cancel_network_reads=Gio.Cancellable()
         self.message_buffer=b''
@@ -56,6 +60,12 @@ class Network(GObject.GObject):
         """Sets up a socket connected to the WeeChat relay."""
         if self.cancel_network_reads.is_cancelled:
             self.cancel_network_reads.reset()
+        if self.config["relay"]["ssl"] == "on":
+            self.socketclient.set_tls_validation_flags(Gio.TlsCertificateFlags.EXPIRED | 
+                                                        Gio.TlsCertificateFlags.REVOKED | 
+                                                        Gio.TlsCertificateFlags.INSECURE | 
+                                                        Gio.TlsCertificateFlags.NOT_ACTIVATED | 
+                                                        Gio.TlsCertificateFlags.GENERIC_ERROR)
         self.socketclient.connect_async(self.adr,None,self.connected_func,None)
       
     def connected_func(self, source_object, res, *user_data):
