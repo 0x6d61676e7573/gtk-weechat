@@ -11,8 +11,7 @@ Keep track of connection status and display in GUI.
 Implement a way to change connection details and save settings.
 Change disconnect/connect buttons to be toggled.
 Some basic keyboard shortcuts like switch buffer.
-Change bufferlist background color.
-Add option for change of color scheme.
+Make colors work in adwaita-dark theme
 
 Maybe:
 CHange the way to keep track of which buffer is in focus (currently done by complicated query of the treeview widget). 
