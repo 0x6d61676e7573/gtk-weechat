@@ -13,8 +13,6 @@ Change disconnect/connect buttons to be toggled.
 Some basic keyboard shortcuts like switch buffer.
 Make colors work in adwaita-dark theme
 
-Maybe:
-CHange the way to keep track of which buffer is in focus (currently done by complicated query of the treeview widget). 
 
 Low priority (nice to have):
 Make hyperlinks clickable.
