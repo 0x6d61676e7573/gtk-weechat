@@ -18,7 +18,7 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk, Gdk, GObject, Pango
 import color
 import config
 
@@ -27,22 +27,19 @@ class ChatTextBuffer(Gtk.TextBuffer):
     def __init__(self):
         Gtk.TextBuffer.__init__(self)
         
-        #The default color codes
-        self._textcolor = None; #self.textColor()
-        self._bgcolor = None; #QtGui.QColor('#FFFFFF')
-
-       # self._setcolorcode = {
-       #     'F': (self.setTextColor, self._textcolor),
-       #     'B': (self.setTextBackgroundColor, self._bgcolor)
-#}
-
         #We need the color class that convert formatting codes in network 
         #data to codes that the parser functions in this class can handle
         self._color = color.Color(config.color_options(), False)
         
+        #Text tags used for formatting
+        bold_tag=self.create_tag(weight=Pango.Weight.BOLD)
+        underline_tag=self.create_tag(underline=Pango.Underline.SINGLE)
+        italic_tag=self.create_tag(style=Pango.Style.ITALIC)
+        reverse_tag=self.create_tag() #reverse video is not implemented
+        self.attr_tag={"*":bold_tag,"_":underline_tag,"/":italic_tag, "!":reverse_tag}
+
     def display(self, time, prefix, text, forcecolor=None):
         """Adds text to the buffer."""
-        ### TODO: Fix so that color codes work ###
         prefix=self._color.convert(prefix)
         text=self._color.convert(text)
         if prefix:
@@ -58,9 +55,9 @@ class ChatTextBuffer(Gtk.TextBuffer):
     
     def _display_with_colors(self, string):
         items = string.split('\x01')
+        color_tag=self.create_tag() 
+        attr_list=[]      
         for i, item in enumerate(items):
-            #A Gtk.TextTag that will be used to define all text attributes
-            tag=self.create_tag() 
             if i > 0 and item.startswith('('):
                 pos = item.find(')')
                 if pos >= 2:
@@ -68,55 +65,45 @@ class ChatTextBuffer(Gtk.TextBuffer):
                     code = item[2:pos]
                     if action == '+':
                         # set attribute
-                        self._set_attribute(code[0], True)
+                        attr_list.append(self.attr_tag[code[0]])
                     elif action == '-':
-                        # remove attribute
-                        self._set_attribute(code[0], False)
+                        if self.attr_tag[code[0]] in attr_list:
+                            attr_list.remove(self.attr_tag[code[0]])
                     else:
                         # reset attributes and color
                         if code == 'r':
-                            self._reset_attributes()
-                            #self._setcolorcode[action][0](
-                            #    self._setcolorcode[action][1])
+                            color_tag=self.create_tag()
+                            attr_list=[]
                         else:
                             # set attributes + color
                             while code.startswith(('*', '!', '/', '_', '|',
                                                    'r')):
                                 if code[0] == 'r':
-                                    self._reset_attributes()
-                #                elif code[0] in self._setfont:
-                 #                   pass
-                                    #self._set_attribute(
-                                    #    code[0],
-                                    #    not self._font[code[0]])
+                                    color_tag=self.create_tag()
+                                    attr_list=[]
+                                elif code[0] in self.attr_tag:
+                                    attr_list.append(self.attr_tag[code[0]])
                                 code = code[1:]
                             if code:
                                 if action=="F":
-                                    rgba=Gdk.RGBA() #Need a Gdk.RGBA object
+                                    rgba=Gdk.RGBA()
                                     rgba.parse(code)
-                                    tag.props.foreground_rgba=rgba
-                                #self._setcolorcode[action][0](
-                                #    QtGui.QColor(code))
+                                    color_tag=self.create_tag(foreground_rgba=rgba)
+                                elif action=="B":
+                                    rgba=Gdk.RGBA()
+                                    rgba.parse(code)
+                                    color_tag.props.background_rgba=rgba
                     item = item[pos+1:]
             if len(item) > 0:
-                self.insert_with_tags(self.get_end_iter(),item, tag)
-        
-    def _reset_attributes(self):
-        pass
-        #self._font = {}
-        #for attr in self._setfont:
-        #    self._set_attribute(attr, False)
-
-    def _set_attribute(self, attr, value):
-        pass
-        #self._font[attr] = value
-        #self._setfont[attr](self._fontvalues[self._font[attr]][attr])
+                self.insert_with_tags(self.get_end_iter(),item, color_tag, *attr_list)
         
 class BufferWidget(Gtk.Grid):
     """Class that so far only adds a layer of indirection."""
     """In qweechat, this class also has nicklist and text entry widgets."""
     def __init__(self):
         Gtk.Grid.__init__(self)
+        self.set_row_spacing(2)
+        self.set_column_spacing(2)
         
         # TextView widget
         self.textview=Gtk.TextView()
@@ -244,7 +231,7 @@ class Buffer(GObject.GObject):
     
     def notify_color(self):
         return self.colors_for_notify[self.notify_level]
-        
+
     def set_notify_level(self, notify_level):
         if self.notify_values[notify_level] > self.notify_values[self.notify_level]:
             self.notify_level=notify_level 
