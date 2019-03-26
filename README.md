@@ -7,7 +7,6 @@ PyGObject
 
 # TODO:
 High priority (pre-alpha stuff):
-Respect background + font attribute code.
 Keep track of connection status and display in GUI.
 Implement a way to change connection details and save settings.
 Change disconnect/connect buttons to be toggled.
