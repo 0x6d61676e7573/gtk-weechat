@@ -69,16 +69,27 @@ class MainWindow(Gtk.Window):
         # Set up stack of buffers
         grid.attach(self.buffers.stack,1,0,1,1)
         
-         # Set up main window buttons
-        button_connect=Gtk.Button(label="connect")
-        button_connect.connect("clicked",self.on_button_connect_clicked)
-        button_disconnect=Gtk.Button(label="disconnect")
-        button_disconnect.connect("clicked",self.on_button_disconnect_clicked)
-        self.headerbar.pack_start(button_connect)
-        self.headerbar.pack_start(button_disconnect)
-        
         # Set up widget showing list of buffers
         grid.attach(self.buffers.treescrolledwindow,0,0,1,1)
+        
+        # Set up a menu
+        menubutton=Gtk.MenuButton()
+        self.headerbar.pack_end(menubutton)
+        menu = Gtk.Menu()
+        menu.set_halign(Gtk.Align(3))
+        menuitem_connect=Gtk.MenuItem(label="Connect")
+        menuitem_connect.connect("activate", self.on_connect_clicked)
+        menuitem_connect.show()
+        menu.append(menuitem_connect)
+        menuitem_disconnect=Gtk.MenuItem(label="Disonnect")
+        menuitem_disconnect.connect("activate", self.on_disconnect_clicked)
+        menuitem_disconnect.show()
+        menu.append(menuitem_disconnect)
+        menuitem_quit=Gtk.MenuItem(label="Quit")
+        menuitem_quit.connect("activate", Gtk.main_quit)
+        menuitem_quit.show()
+        menu.append(menuitem_quit)
+        menubutton.set_popup(menu)
         
         # Set up the network module
         self.net=Network()
@@ -86,13 +97,13 @@ class MainWindow(Gtk.Window):
         if self.config["relay"]["autoconnect"]=="on":
             self.net.connect_weechat()
         
-    def on_button_connect_clicked(self, widget):
+    def on_connect_clicked(self, widget):
         """Callback function for when the connect button is clicked."""
         print("Connecting")
         self.headerbar.set_subtitle("Connecting...")
         self.net.connect_weechat()
         
-    def on_button_disconnect_clicked(self, widget):
+    def on_disconnect_clicked(self, widget):
         """Callback function for when the disconnect button is clicked."""
         print("Disonnecting")
         self.net.disconnect_weechat()
