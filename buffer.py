@@ -145,7 +145,9 @@ class Buffer(GObject.GObject):
     """A WeeChat buffer that holds buffer data."""
     __gsignals__ = {
         'messageToWeechat' : (GObject.SIGNAL_RUN_LAST, None,
-                            (Gtk.Widget,))
+                            (Gtk.Widget,)),
+        'notifyLevelChanged' : (GObject.SIGNAL_RUN_LAST, None,
+                                tuple())
         }
     def __init__(self, data={}):
         GObject.GObject.__init__(self)
@@ -235,9 +237,20 @@ class Buffer(GObject.GObject):
     def set_notify_level(self, notify_level):
         if self.notify_values[notify_level] > self.notify_values[self.notify_level]:
             self.notify_level=notify_level 
+            self.emit("notifyLevelChanged")
     
     def reset_notify_level(self):
         self.notify_level="default"
+        self.emit("notifyLevelChanged")
+    
+    def get_name(self):
+        name = self.data["short_name"]
+        if name is None:
+            name = self.data["full_name"]
+        return name
+    
+    def get_topic(self):
+        return self.data["title"]
         
     def pointer(self):
         """Return pointer on buffer."""
