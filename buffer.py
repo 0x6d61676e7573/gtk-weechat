@@ -162,7 +162,7 @@ class Buffer(GObject.GObject):
         self.colors_for_notify={"default": "black", "mention":"green", "message":"orange", "low":"blue"}
         self.notify_values={"default": 0, "low": 1, "message":2, "mention":3}
         self.notify_level="default"
-    
+
     def nicklist_add_item(self, parent, group, prefix, name, visible):
         """Add a group/nick in nicklist."""
         if group:
@@ -182,7 +182,7 @@ class Buffer(GObject.GObject):
         self.nicklist_data.clear()
         for group in sorted(self.nicklist):
             for nick in sorted(self.nicklist[group]['nicks'],
-                               key=lambda n: n['name']):
+                               key=lambda n: n['name'].lower()):
                 self.nicklist_data.append((nick["prefix"] + nick['name'],))
               #  prefix_color = {
               #      '': '',
