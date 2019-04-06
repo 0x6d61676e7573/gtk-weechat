@@ -32,9 +32,9 @@ CONFIG_DEFAULT_RELAY_LINES = 50
 CONFIG_DEFAULT_SECTIONS = ('relay', 'look', 'color')
 CONFIG_DEFAULT_OPTIONS = (('relay.server', ''),
                           ('relay.port', ''),
-                          ('relay.ssl', 'off'),
+                          ('relay.ssl', 'on'),
                           ('relay.password', ''),
-                          ('relay.autoconnect', 'on'),
+                          ('relay.autoconnect', 'off'),
                           ('relay.lines', str(CONFIG_DEFAULT_RELAY_LINES)),
                           ('look.debug', 'off'),
                           ('look.statusbar', 'off'))
@@ -124,7 +124,7 @@ def write(config):
     """Write config file."""
     if not os.path.exists(CONFIG_DIR):
         os.mkdir(CONFIG_DIR, 0o0755)
-    with open(CONFIG_FILENAME, 'wb') as cfg:
+    with open(CONFIG_FILENAME, 'w') as cfg:
         config.write(cfg)
 
 
