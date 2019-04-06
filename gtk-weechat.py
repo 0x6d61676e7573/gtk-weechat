@@ -26,6 +26,7 @@ from buffer import Buffer
 import config
 import copy
 from bufferlist import BufferList 
+from connection import ConnectionSettings
 
 FUN_MSG="\n\n\n\n\n\n\n\n\n\n\n\n"\
 " _______  _________ __   ___       __         ______________        _____ \n"\
@@ -40,13 +41,13 @@ class MainWindow(Gtk.Window):
     """GTK Main Window."""
     """Should probably switch to GTK Application class later on, """
     """but does not matter now."""
-    def __init__(self):
+    def __init__(self, config):
         Gtk.Window.__init__(self, title="Gtk-WeeChat")
         self.set_default_size(950,700)
         self.connect("destroy", Gtk.main_quit)
         
         # Get the settings from the config file
-        self.config=config.read()
+        self.config=config
         
         # Set up a list of buffer objects, holding data for every buffer
         self.buffers=BufferList()
@@ -77,31 +78,53 @@ class MainWindow(Gtk.Window):
         self.headerbar.pack_end(menubutton)
         menu = Gtk.Menu()
         menu.set_halign(Gtk.Align(3))
-        menuitem_connect=Gtk.MenuItem(label="Connect")
-        menuitem_connect.connect("activate", self.on_connect_clicked)
-        menuitem_connect.show()
-        menu.append(menuitem_connect)
-        menuitem_disconnect=Gtk.MenuItem(label="Disonnect")
-        menuitem_disconnect.connect("activate", self.on_disconnect_clicked)
-        menuitem_disconnect.show()
-        menu.append(menuitem_disconnect)
+        self.menuitem_connect=Gtk.MenuItem(label="Connect")
+        self.menuitem_connect.connect("activate", self.on_connect_clicked)
+        self.menuitem_connect.show()
+        menu.append(self.menuitem_connect)
+        self.menuitem_disconnect=Gtk.MenuItem(label="Disconnect")
+        self.menuitem_disconnect.connect("activate", self.on_disconnect_clicked)
+        self.menuitem_disconnect.set_sensitive(False)
+        self.menuitem_disconnect.show()
+        menu.append(self.menuitem_disconnect)
+        menuitem_settings=Gtk.MenuItem(label="Connection Details")
+        menuitem_settings.connect("activate", self.on_settings_clicked)
+        menuitem_settings.show()
+        menu.append(menuitem_settings)
         menuitem_quit=Gtk.MenuItem(label="Quit")
         menuitem_quit.connect("activate", Gtk.main_quit)
         menuitem_quit.show()
         menu.append(menuitem_quit)
         menubutton.set_popup(menu)
         
+        
+            
         # Set up the network module
-        self.net=Network()
+        self.net=Network(self.config)
         self.net.connect("messageFromWeechat",self._network_weechat_msg)
-        if self.config["relay"]["autoconnect"]=="on":
-            self.net.connect_weechat()
+        if self.net.check_settings() is True and \
+                            self.config["relay"]["autoconnect"]=="on":
+            if self.net.connect_weechat() is False:
+                print("Failed to connect.")
+            else:
+                self.menuitem_connect.set_sensitive(False)
+                self.menuitem_disconnect.set_sensitive(True)
+        else:
+            connectionSettings.display()
+        
+    def on_settings_clicked(self, widget):
+        connectionSettings.display()
         
     def on_connect_clicked(self, widget):
         """Callback function for when the connect button is clicked."""
+        if self.net.check_settings() is False:
+            connectionSettings.display()
+            return
         print("Connecting")
         self.headerbar.set_subtitle("Connecting...")
         self.net.connect_weechat()
+        self.menuitem_connect.set_sensitive(False)
+        self.menuitem_disconnect.set_sensitive(True)
         
     def on_disconnect_clicked(self, widget):
         """Callback function for when the disconnect button is clicked."""
@@ -109,6 +132,8 @@ class MainWindow(Gtk.Window):
         self.net.disconnect_weechat()
         self.buffers.clear()
         self.update_headerbar()
+        self.menuitem_connect.set_sensitive(True)
+        self.menuitem_disconnect.set_sensitive(False)
         
     def on_send_message(self, source_object, entry):
         """ Callback for when enter is pressed in entry widget """
@@ -315,6 +340,8 @@ class MainWindow(Gtk.Window):
         
 
 # Start the application 
-win = MainWindow()
+config=config.read()
+connectionSettings=ConnectionSettings(config)
+win = MainWindow(config)
 win.show_all()
 Gtk.main()
