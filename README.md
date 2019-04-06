@@ -8,8 +8,6 @@ PyGObject
 # TODO:
 High priority (pre-alpha stuff):
 Keep track of connection status and display in GUI.
-Implement a way to change connection details and save settings.
-Change disconnect/connect buttons to be toggled.
 Some basic keyboard shortcuts like switch buffer.
 Make colors work in adwaita-dark theme
 
