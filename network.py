@@ -28,26 +28,43 @@ from gi.repository import Gtk
 from gi.repository import GObject
 from gi.repository import GLib
 import sys
-import config
 
-_PROTO_INIT_CMD = 'init password=,compression=on'
+
+_PROTO_INIT_CMD = 'init password={password},compression={compression}'
 
 _PROTO_SYNC_CMDS = '(listbuffers) hdata buffer:gui_buffers(*) number,full_name,short_name,type,nicklist,title,local_variables\n' \
-    '(listlines) hdata buffer:gui_buffers(*)/own_lines/last_line(-80)/'\
+    '(listlines) hdata buffer:gui_buffers(*)/own_lines/last_line(-{lines})/'\
     'data date,displayed,prefix,message\n'\
     '(nicklist) nicklist\n'\
     'sync\n'
 
-
-
 class Network(GObject.GObject):
     __gsignals__ = { "messageFromWeechat": (GObject.SIGNAL_RUN_FIRST,None,(GLib.Bytes,))}
    
-    def __init__(self):
+    def __init__(self, config):
         GObject.GObject.__init__(self)
-        self.config=config.read()
-        self.host=""
-        self.port=
+        self.config=config
+        self.cancel_network_reads=Gio.Cancellable()
+        self.message_buffer=b''
+        
+    def check_settings(self):
+        """ Returns True if settings required to connect are filled in. """
+        return False if self.config["relay"]["server"] == "" \
+                    or self.config["relay"]["port"] == "" \
+                    else True
+        
+    def connect_weechat(self):
+        """Sets up a socket connected to the WeeChat relay."""
+        if not self.check_settings():
+            return False
+        self.host=self.config["relay"]["server"]
+        port_str = self.config["relay"]["port"]
+        try:
+            self.port=int(port_str)
+        except ValueError:
+            print("Invalid port, must be an integer.")
+            return False
+        self.adr=Gio.NetworkAddress.new(self.host,self.port)
         self.socket=None
         self.socketclient= Gio.SocketClient.new()
         if self.config["relay"]["ssl"] == "on":
@@ -57,25 +74,29 @@ class Network(GObject.GObject):
                                                         Gio.TlsCertificateFlags.INSECURE | 
                                                         Gio.TlsCertificateFlags.NOT_ACTIVATED | 
                                                         Gio.TlsCertificateFlags.GENERIC_ERROR)
-        self.adr=Gio.NetworkAddress.new(self.host,self.port)
-        self.cancel_network_reads=Gio.Cancellable()
-        self.message_buffer=b''
-      
-    def connect_weechat(self):
-        """Sets up a socket connected to the WeeChat relay."""
         if self.cancel_network_reads.is_cancelled:
             self.cancel_network_reads.reset()
         self.socketclient.connect_async(self.adr,None,self.connected_func,None)
+        return True
       
     def connected_func(self, source_object, res, *user_data):
         """Callback function called after connection attempt."""
-        self.socket=self.socketclient.connect_finish(res)
+        try:
+            self.socket=self.socketclient.connect_finish(res)
+        except GLib.Error as err:
+            print("Connection failed:\n{}".format(err.message))
+            return
         if not self.socket:
             print("Connection failed")
         else:
             print("Connected")
-            self.send_to_weechat(_PROTO_INIT_CMD+"\n")
-            self.send_to_weechat(_PROTO_SYNC_CMDS+"\n")
+            self.send_to_weechat(_PROTO_INIT_CMD.format(
+                            password=self.config["relay"]["password"],
+                            compression="on")
+                            +"\n")
+            self.send_to_weechat(_PROTO_SYNC_CMDS.format(
+                            lines=self.config["relay"]["lines"])
+                            +"\n")
             self.input=self.socket.get_input_stream()
             self.input.read_bytes_async(4096,0,self.cancel_network_reads,self.get_message)
         
