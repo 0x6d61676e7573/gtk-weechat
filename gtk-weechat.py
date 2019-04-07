@@ -100,6 +100,15 @@ class MainWindow(Gtk.ApplicationWindow):
         # Set up the network module
         self.net=Network(self.config)
         self.net.connect("messageFromWeechat",self._network_weechat_msg)
+        
+        # Set up actions
+        action = Gio.SimpleAction.new("buffer_next", None)
+        action.connect("activate", self.on_buffer_next)
+        self.add_action(action)
+        action = Gio.SimpleAction.new("buffer_prev", None)
+        action.connect("activate", self.on_buffer_prev)
+        self.add_action(action)
+        
         if self.net.check_settings() is True and \
                             self.config["relay"]["autoconnect"]=="on":
             if self.net.connect_weechat() is False:
@@ -109,6 +118,24 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.menuitem_disconnect.set_sensitive(True)
         else:
             connectionSettings.display()
+        
+    def on_buffer_next(self, action, param):
+        current_bufptr=self.buffers.active_buffer().pointer()
+        for row in self.buffers.list_buffers:
+            if row[2] == current_bufptr:
+                next_row=row.get_next()
+                if next_row:
+                    self.buffers.show(next_row[2])
+                    return
+
+    def on_buffer_prev(self, action, param):
+        current_bufptr=self.buffers.active_buffer().pointer()
+        for row in self.buffers.list_buffers:
+            if row[2] == current_bufptr:
+                prev_row=row.get_previous()
+                if prev_row:
+                    self.buffers.show(prev_row[2])
+                    return
         
     def on_settings_clicked(self, widget):
         connectionSettings.display()
@@ -350,6 +377,9 @@ class Application(Gtk.Application):
         
     def do_startup(self):
         Gtk.Application.do_startup(self)
+        self.window=MainWindow(self.config, title="Gtk-Weechat", application=self)
+        self.set_accels_for_action("win.buffer_next", ["<Control>Next"])
+        self.set_accels_for_action("win.buffer_prev", ["<Control>Prior"])
     
     def do_activate(self):
         if not self.window:
