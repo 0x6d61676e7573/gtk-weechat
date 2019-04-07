@@ -19,7 +19,7 @@
 #
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gio
 from network import Network
 import protocol
 from buffer import Buffer
@@ -37,14 +37,14 @@ FUN_MSG="\n\n\n\n\n\n\n\n\n\n\n\n"\
 
 
 
-class MainWindow(Gtk.Window):
+class MainWindow(Gtk.ApplicationWindow):
     """GTK Main Window."""
     """Should probably switch to GTK Application class later on, """
     """but does not matter now."""
-    def __init__(self, config):
-        Gtk.Window.__init__(self, title="Gtk-WeeChat")
+    def __init__(self, config, *args, **kwargs):
+        Gtk.Window.__init__(self, *args, **kwargs)
         self.set_default_size(950,700)
-        self.connect("destroy", Gtk.main_quit)
+        #self.connect("destroy", Gtk.main_quit)
         
         # Get the settings from the config file
         self.config=config
@@ -92,13 +92,11 @@ class MainWindow(Gtk.Window):
         menuitem_settings.show()
         menu.append(menuitem_settings)
         menuitem_quit=Gtk.MenuItem(label="Quit")
-        menuitem_quit.connect("activate", Gtk.main_quit)
+        menuitem_quit.set_action_name("app.quit")
         menuitem_quit.show()
         menu.append(menuitem_quit)
         menubutton.set_popup(menu)
-        
-        
-            
+
         # Set up the network module
         self.net=Network(self.config)
         self.net.connect("messageFromWeechat",self._network_weechat_msg)
@@ -339,9 +337,32 @@ class MainWindow(Gtk.Window):
         self.headerbar.set_subtitle(self.buffers.get_subtitle())
         
 
+class Application(Gtk.Application):
+    def __init__(self, config):
+        Gtk.Application.__init__(self, 
+                application_id="com.github._x67616d6e7573.gtk_weechat",
+                flags=Gio.ApplicationFlags.FLAGS_NONE)
+        self.window=None
+        self.config=config
+        action = Gio.SimpleAction.new("quit", None)
+        action.connect("activate", self.on_quit)
+        self.add_action(action)
+        
+    def do_startup(self):
+        Gtk.Application.do_startup(self)
+    
+    def do_activate(self):
+        if not self.window:
+            self.window=MainWindow(self.config, title="Gtk-Weechat", application=self)
+        self.window.show_all()
+        self.window.present()
+        
+    def on_quit(self, action, param):
+        self.quit()
+        
+        
 # Start the application 
 config=config.read()
 connectionSettings=ConnectionSettings(config)
-win = MainWindow(config)
-win.show_all()
-Gtk.main()
+app=Application(config)
+app.run()
