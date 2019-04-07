@@ -8,7 +8,6 @@ PyGObject
 # TODO:
 High priority (pre-alpha stuff):
 Keep track of connection status and display in GUI.
-Some basic keyboard shortcuts like switch buffer.
 Make colors work in adwaita-dark theme
 
 
