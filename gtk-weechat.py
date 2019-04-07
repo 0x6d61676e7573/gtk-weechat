@@ -378,8 +378,8 @@ class Application(Gtk.Application):
     def do_startup(self):
         Gtk.Application.do_startup(self)
         self.window=MainWindow(self.config, title="Gtk-Weechat", application=self)
-        self.set_accels_for_action("win.buffer_next", ["<Control>Next"])
-        self.set_accels_for_action("win.buffer_prev", ["<Control>Prior"])
+        self.set_accels_for_action("win.buffer_next", ["<Control>Next", "<Alt>Down"])
+        self.set_accels_for_action("win.buffer_prev", ["<Control>Prior", "<Alt>Up"])
     
     def do_activate(self):
         if not self.window:
