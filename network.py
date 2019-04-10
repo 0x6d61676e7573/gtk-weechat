@@ -18,17 +18,13 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from enum import Enum
 import gi
-import struct
-
 gi.require_version('Gtk', '3.0')
+from gi.repository import Gio, Gtk, GLib, GObject
 
-from gi.repository import Gio
-from gi.repository import Gtk
-from gi.repository import GObject
-from gi.repository import GLib
+import struct
 import sys
-
 
 _PROTO_INIT_CMD = 'init password={password},compression={compression}'
 
@@ -38,14 +34,22 @@ _PROTO_SYNC_CMDS = '(listbuffers) hdata buffer:gui_buffers(*) number,full_name,s
     '(nicklist) nicklist\n'\
     'sync\n'
 
+class ConnectionStatus(Enum):
+    NOT_CONNECTED=1
+    CONNECTING=2
+    CONNECTED=3
+    CONNECTION_LOST=4
+
 class Network(GObject.GObject):
-    __gsignals__ = { "messageFromWeechat": (GObject.SIGNAL_RUN_FIRST,None,(GLib.Bytes,))}
+    __gsignals__ = { "messageFromWeechat": (GObject.SIGNAL_RUN_FIRST,None,(GLib.Bytes,)),
+                     "connectionChanged": (GObject.SIGNAL_RUN_FIRST,None,())}
    
     def __init__(self, config):
         GObject.GObject.__init__(self)
         self.config=config
         self.cancel_network_reads=Gio.Cancellable()
         self.message_buffer=b''
+        self.connection_status=ConnectionStatus.NOT_CONNECTED
         
     def check_settings(self):
         """ Returns True if settings required to connect are filled in. """
@@ -77,6 +81,8 @@ class Network(GObject.GObject):
         if self.cancel_network_reads.is_cancelled:
             self.cancel_network_reads.reset()
         self.socketclient.connect_async(self.adr,None,self.connected_func,None)
+        self.connection_status=ConnectionStatus.CONNECTING
+        self.emit("connectionChanged")
         return True
       
     def connected_func(self, source_object, res, *user_data):
@@ -85,11 +91,13 @@ class Network(GObject.GObject):
             self.socket=self.socketclient.connect_finish(res)
         except GLib.Error as err:
             print("Connection failed:\n{}".format(err.message))
+            self.connection_status=ConnectionStatus.NOT_CONNECTED
+            self.emit("connectionChanged")
             return
-        if not self.socket:
-            print("Connection failed")
         else:
             print("Connected")
+            self.connection_status=ConnectionStatus.CONNECTED
+            self.emit("connectionChanged")
             self.send_to_weechat(_PROTO_INIT_CMD.format(
                             password=self.config["relay"]["password"],
                             compression="on")
@@ -99,7 +107,7 @@ class Network(GObject.GObject):
                             +"\n")
             self.input=self.socket.get_input_stream()
             self.input.read_bytes_async(4096,0,self.cancel_network_reads,self.get_message)
-        
+
     def get_message(self, source_object, res, *user_data):
         """Callback function to read network data, split it into"""
         """WeeChat messages that are passed on to the application."""
@@ -108,12 +116,20 @@ class Network(GObject.GObject):
         except GLib.Error as err:
             if err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.CANCELLED):
                 print("Stopped listening for server messages.")
+                self.connection_status=ConnectionStatus.NOT_CONNECTED
+                self.emit("connectionChanged")
+                return
+            elif err.matches(Gio.tls_error_quark(), Gio.TlsError.EOF):
+                print("Server has closed the connection.")
+                self.connection_status=ConnectionStatus.CONNECTION_LOST
+                self.emit("connectionChanged")
                 return
             else:
                 raise
         if gbytes is None:
             #Error, try again
             self.input.read_bytes_async(4096,0,self.cancel_network_reads,self.get_message)
+            return
         bytes_received=gbytes.get_size()
         if bytes_received <=0:
             #Empty message or error, try another read
@@ -129,7 +145,6 @@ class Network(GObject.GObject):
                 break
         self.input.read_bytes_async(4096,0,self.cancel_network_reads,self.get_message)
                 
-                
     def disconnect_weechat(self):
         """Disconnect from WeeChat."""
         if not self.socket.is_connected():
@@ -137,15 +152,16 @@ class Network(GObject.GObject):
         else:
             self.send_to_weechat("quit\n")
             self.socket.set_graceful_disconnect(True)
-			### TODO: Make disconnect not throw exception ###
-        self.cancel_network_reads.cancel()
-        self.socket.close()
+            self.socket.close()
+            self.socket=None
+            self.cancel_network_reads.cancel()
+            self.connection_status=ConnectionStatus.NOT_CONNECTED
+            self.emit("connectionChanged")
          
     def send_to_weechat(self,message):
         """Send a message to WeeChat."""
         output=self.socket.get_output_stream()
         output.write(message.encode("utf-8"))
-		#output.flush() NOT SURE IF NEEDED
 		
     def desync_weechat(self):
         """Desynchronize from WeeChat."""

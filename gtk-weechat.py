@@ -20,7 +20,7 @@
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gio
-from network import Network
+from network import Network, ConnectionStatus
 import protocol
 from buffer import Buffer
 import config
@@ -100,6 +100,7 @@ class MainWindow(Gtk.ApplicationWindow):
         # Set up the network module
         self.net=Network(self.config)
         self.net.connect("messageFromWeechat",self._network_weechat_msg)
+        self.net.connect("connectionChanged", self._connection_changed)
         
         # Set up actions
         action = Gio.SimpleAction.new("buffer_next", None)
@@ -118,7 +119,22 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.menuitem_disconnect.set_sensitive(True)
         else:
             connectionSettings.display()
-        
+
+    def _connection_changed(self, source_object):
+        self.update_headerbar()
+        if self.net.connection_status==ConnectionStatus.NOT_CONNECTED:
+            self.menuitem_disconnect.set_sensitive(False)
+            self.menuitem_connect.set_sensitive(True)
+        elif self.net.connection_status==ConnectionStatus.CONNECTING:
+            self.menuitem_disconnect.set_sensitive(True)
+            self.menuitem_connect.set_sensitive(False)
+        elif self.net.connection_status==ConnectionStatus.CONNECTED:
+            self.menuitem_disconnect.set_sensitive(True)
+            self.menuitem_connect.set_sensitive(False)
+        elif self.net.connection_status==ConnectionStatus.CONNECTION_LOST:
+            self.menuitem_disconnect.set_sensitive(False)
+            self.menuitem_connect.set_sensitive(True)
+
     def on_buffer_next(self, action, param):
         current_bufptr=self.buffers.active_buffer().pointer()
         for row in self.buffers.list_buffers:
@@ -146,10 +162,9 @@ class MainWindow(Gtk.ApplicationWindow):
             connectionSettings.display()
             return
         print("Connecting")
+        self.buffers.clear()
         self.headerbar.set_subtitle("Connecting...")
         self.net.connect_weechat()
-        self.menuitem_connect.set_sensitive(False)
-        self.menuitem_disconnect.set_sensitive(True)
         
     def on_disconnect_clicked(self, widget):
         """Callback function for when the disconnect button is clicked."""
@@ -157,11 +172,11 @@ class MainWindow(Gtk.ApplicationWindow):
         self.net.disconnect_weechat()
         self.buffers.clear()
         self.update_headerbar()
-        self.menuitem_connect.set_sensitive(True)
-        self.menuitem_disconnect.set_sensitive(False)
         
     def on_send_message(self, source_object, entry):
         """ Callback for when enter is pressed in entry widget """
+        if self.net.connection_status != ConnectionStatus.CONNECTED:
+            return
         text=copy.deepcopy(entry.get_text()) #returned string can not be stored        
         full_name=source_object.data["full_name"]
         message = 'input %s %s\n' % (full_name, text)
@@ -360,8 +375,20 @@ class MainWindow(Gtk.ApplicationWindow):
     
     def update_headerbar(self):
         """ Updates headerbar title and subtitle. """
-        self.headerbar.set_title(self.buffers.get_title())
-        self.headerbar.set_subtitle(self.buffers.get_subtitle())
+        if self.net.connection_status==ConnectionStatus.CONNECTED:
+            if self.buffers.active_buffer() is not None: 
+                self.headerbar.set_title(self.buffers.get_title())
+                self.headerbar.set_subtitle(self.buffers.get_subtitle())
+                return
+            else:
+                self.headerbar.set_subtitle("Connected")
+        elif self.net.connection_status==ConnectionStatus.NOT_CONNECTED:
+            self.headerbar.set_subtitle("Not connected")
+        elif self.net.connection_status==ConnectionStatus.CONNECTING:
+            self.headerbar.set_subtitle("Connecting...")
+        elif self.net.connection_status==ConnectionStatus.CONNECTION_LOST:
+            self.headerbar.set_subtitle("Connection lost")
+        self.headerbar.set_title("Gtk-WeeChat")
         
 
 class Application(Gtk.Application):

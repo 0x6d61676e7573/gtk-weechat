@@ -7,9 +7,7 @@ PyGObject
 
 # TODO:
 High priority (pre-alpha stuff):
-Keep track of connection status and display in GUI.
 Make colors work in adwaita-dark theme
-
 
 Low priority (nice to have):
 Make hyperlinks clickable.
