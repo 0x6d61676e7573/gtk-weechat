@@ -18,7 +18,7 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, GObject, Gdk
 
 class BufferList(GObject.GObject):
     """Class to integrate all buffer related data and widgets.
@@ -45,10 +45,10 @@ class BufferList(GObject.GObject):
         self.stack.set_visible(self.default_widget)
     
         #Widget displaying list of buffers:
-        self.list_buffers=Gtk.ListStore(str, str, str)
+        self.list_buffers=Gtk.ListStore(str,Gdk.RGBA,str)
         self.tree=Gtk.TreeView(self.list_buffers)
         self.renderer=Gtk.CellRendererText()
-        self.column=Gtk.TreeViewColumn("Name",self.renderer,text=0, foreground=1)
+        self.column=Gtk.TreeViewColumn("Name",self.renderer,text=0, foreground_rgba=1)
         self.tree.append_column(self.column)
         self.tree.set_activate_on_single_click(True)
         self.tree.set_headers_visible(False)

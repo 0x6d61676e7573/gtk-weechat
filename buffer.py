@@ -159,7 +159,13 @@ class Buffer(GObject.GObject):
         self.chat=ChatTextBuffer()
         self.widget.textview.set_buffer(self.chat)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
-        self.colors_for_notify={"default": "black", "mention":"green", "message":"orange", "low":"blue"}
+        styleContext=self.widget.get_style_context()
+        (color_is_defined,theme_fg_color)=styleContext.lookup_color("theme_fg_color") 
+        default=theme_fg_color if color_is_defined else Gdk.RGBA(0,0,0,1)
+        green=Gdk.RGBA(0,1,0,1)
+        orange=Gdk.RGBA(1,0.5,0.2,1)
+        blue=Gdk.RGBA(0,0,1,1)
+        self.colors_for_notify={"default": default, "mention":green, "message":orange, "low":blue}
         self.notify_values={"default": 0, "low": 1, "message":2, "mention":3}
         self.notify_level="default"
 
