@@ -120,7 +120,10 @@ class Color():
             return self._convert_terminal_color(fg_bg, attrs, color)
         try:
             index = int(color)
-            return self._convert_terminal_color(fg_bg, attrs,
+            if index == 0:      # default color, skip color code
+                return "\x01({}{})".format(fg_bg, attrs)
+            else: 
+                return self._convert_terminal_color(fg_bg, attrs,
                                                 WEECHAT_BASIC_COLORS[index][1])
         except:  # noqa: E722
             print('Error decoding color "%s"' % color)

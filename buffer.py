@@ -24,12 +24,12 @@ import config
 
 class ChatTextBuffer(Gtk.TextBuffer):
     """Textbuffer to store buffer text."""
-    def __init__(self):
+    def __init__(self, darkmode=False):
         Gtk.TextBuffer.__init__(self)
         
         #We need the color class that convert formatting codes in network 
         #data to codes that the parser functions in this class can handle
-        self._color = color.Color(config.color_options(), False)
+        self._color = color.Color(config.color_options(darkmode), False)
         
         #Text tags used for formatting
         bold_tag=self.create_tag(weight=Pango.Weight.BOLD)
@@ -38,7 +38,7 @@ class ChatTextBuffer(Gtk.TextBuffer):
         reverse_tag=self.create_tag() #reverse video is not implemented
         self.attr_tag={"*":bold_tag,"_":underline_tag,"/":italic_tag, "!":reverse_tag}
 
-    def display(self, time, prefix, text, forcecolor=None):
+    def display(self, time, prefix, text):
         """Adds text to the buffer."""
         prefix=self._color.convert(prefix)
         text=self._color.convert(text)
@@ -93,6 +93,8 @@ class ChatTextBuffer(Gtk.TextBuffer):
                                     rgba=Gdk.RGBA()
                                     rgba.parse(code)
                                     color_tag.props.background_rgba=rgba
+                            else:
+                                color_tag=self.create_tag() #if no color code, use a dummy tag
                     item = item[pos+1:]
             if len(item) > 0:
                 self.insert_with_tags(self.get_end_iter(),item, color_tag, *attr_list)
@@ -149,22 +151,22 @@ class Buffer(GObject.GObject):
         'notifyLevelChanged' : (GObject.SIGNAL_RUN_LAST, None,
                                 tuple())
         }
-    def __init__(self, data={}):
+    def __init__(self, data={}, darkmode=False):
         GObject.GObject.__init__(self)
         self.data=data
         self.nicklist={}
         self.widget=BufferWidget()
         self.widget.entry.connect("activate", self.on_send_message)
         self.nicklist_data=Gtk.ListStore(str)
-        self.chat=ChatTextBuffer()
+        self.chat=ChatTextBuffer(darkmode)
         self.widget.textview.set_buffer(self.chat)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
         styleContext=self.widget.get_style_context()
         (color_is_defined,theme_fg_color)=styleContext.lookup_color("theme_fg_color") 
         default=theme_fg_color if color_is_defined else Gdk.RGBA(0,0,0,1)
-        green=Gdk.RGBA(0,1,0,1)
+        green=Gdk.RGBA(0,0.7,0,1)
         orange=Gdk.RGBA(1,0.5,0.2,1)
-        blue=Gdk.RGBA(0,0,1,1)
+        blue=Gdk.RGBA(0.2,0.2,0.7,1)
         self.colors_for_notify={"default": default, "mention":green, "message":orange, "low":blue}
         self.notify_values={"default": 0, "low": 1, "message":2, "mention":3}
         self.notify_level="default"

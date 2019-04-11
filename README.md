@@ -6,8 +6,6 @@ Python>=3.0,
 PyGObject
 
 # TODO:
-High priority (pre-alpha stuff):
-Make colors work in adwaita-dark theme
 
 Low priority (nice to have):
 Make hyperlinks clickable.

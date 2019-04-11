@@ -29,11 +29,11 @@ from bufferlist import BufferList
 from connection import ConnectionSettings
 
 FUN_MSG="\n\n\n\n\n\n\n\n\n\n\n\n"\
-" _______  _________ __   ___       __         ______________        _____ \n"\
-"___  ___\/__  __/ // /   __ |     / /___________  ____/__  /_______ __  /_\n"\
-"__  / ___ _  / /   _/ __ __ | /| / /_  _ \  _ \  /    __  __ \  __ `/  __/\n"\
-"___ |_/ /_  / / /\ \     __ |/ |/ / /  __/  __/ /___  _  / / / /_/ // /_  \n"\
-" ______/ /_/ /_/ /_/     ____/|__/  \___/\___/\____/  /_/ /_/\__,_/ \__/  \n"
+" ______  _________ __ ___       __         ______________        _____ \n"\
+"__  ___\/__  __/ // /  _ |     / /___________  ____/__  /_______ __  /_\n"\
+"_  / ___ _  / /   _/ _ _ | /| / /_  _ \  _ \  /    __  __ \  __ `/  __/\n"\
+"__ |_/ /_  / / /\ \    _ |/ |/ / /  __/  __/ /___  _  / / / /_/ // /_  \n"\
+" _____/ /_/ /_/ /_/    ___/|__/  \___/\___/\____/  /_/ /_/\__,_/ \__/  \n"
 
 
 
@@ -44,8 +44,11 @@ class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, config, *args, **kwargs):
         Gtk.Window.__init__(self, *args, **kwargs)
         self.set_default_size(950,700)
-        #self.connect("destroy", Gtk.main_quit)
         
+        # Check if theme name has "dark" in it
+        theme=Gtk.Settings.get_default().props.gtk_theme_name
+        self.darkmode= False if theme.lower().find('dark')==-1 else True
+
         # Get the settings from the config file
         self.config=config
         
@@ -225,7 +228,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 continue
             self.buffers.clear()
             for item in obj.value['items']:
-                buf = Buffer(item)
+                buf = Buffer(item, darkmode=self.darkmode)
                 self.buffers.append(buf)
                 buf.connect("messageToWeechat", self.on_send_message)
 
@@ -326,7 +329,7 @@ class MainWindow(Gtk.ApplicationWindow):
             if obj.objtype != 'hda' or obj.value['path'][-1] != 'buffer':
                 continue
             for item in obj.value['items']:
-                buf = Buffer(item)
+                buf = Buffer(item, darkmode=self.darkmode)
                 self.buffers.append(buf)
                 buf.connect("messageToWeechat", self.on_send_message)
                 self.buffers.show(buf.pointer())
