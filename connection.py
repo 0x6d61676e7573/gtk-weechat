@@ -18,18 +18,25 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GObject
 import config
 
 class ConnectionSettings(Gtk.Window):
+    __gsignals__ = { "connect": (GObject.SIGNAL_RUN_FIRST,None,())}
     def __init__(self, config):
         Gtk.Window.__init__(self, title="Connection")
         self.set_modal(True)
         self.set_keep_above(True)
         self.config=config
-        #self.set_default_size(600,600)
         self.connect("destroy", self.on_cancel)
         grid=Gtk.Grid()
+        # Set up a headerbar
+        headerbar=Gtk.HeaderBar()
+        headerbar.set_has_subtitle(False)
+        headerbar.set_title("Connection")
+        headerbar.set_show_close_button(False)
+        self.set_titlebar(headerbar)
+
         grid.set_column_spacing(5)
         grid.set_row_spacing(5)
         grid.set_margin_end(20)
@@ -66,11 +73,15 @@ class ConnectionSettings(Gtk.Window):
         grid.attach(button_box,0,5,2,1)
         save_button=Gtk.Button(label="Save")
         cancel_button=Gtk.Button(label="Cancel")
-        button_box.pack_end(save_button, False, False, 0)
-        button_box.pack_end(cancel_button, False, False, 0)
+        connect_button=Gtk.Button(label="Connect")
+        headerbar.pack_end(save_button)
+        headerbar.pack_start(cancel_button)
+        #button_box.pack_end(connect_button,False,False,0)
+        button_box.set_center_widget(connect_button)
         
         cancel_button.connect("clicked", self.on_cancel)
         save_button.connect("clicked", self.on_saved)
+        connect_button.connect("clicked", self.on_connect)
         
     def display(self):
         self.show_all()
@@ -86,6 +97,11 @@ class ConnectionSettings(Gtk.Window):
         self.config["relay"]["ssl"]= "on" if self.switch1.get_active() else "off"
         self.config["relay"]["autoconnect"]= "on" if self.switch2.get_active() else "off"
         config.write(self.config)
+
+    def on_connect(self,widget):
+        self.on_saved(widget)
+        self.emit("connect")
+        self.on_cancel(widget)
 
     def fill_in_settings(self):
         self.entry1.set_text(self.config["relay"]["server"])

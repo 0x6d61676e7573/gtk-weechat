@@ -103,6 +103,9 @@ class MainWindow(Gtk.ApplicationWindow):
         self.net.connect("messageFromWeechat",self._network_weechat_msg)
         self.net.connect("connectionChanged", self._connection_changed)
         
+        # Connect to connection settings signals
+        connectionSettings.connect("connect", self.on_settings_connect)
+
         # Set up actions
         action = Gio.SimpleAction.new("buffer_next", None)
         action.connect("activate", self.on_buffer_next)
@@ -120,6 +123,14 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.menuitem_disconnect.set_sensitive(True)
         else:
             connectionSettings.display()
+    def on_settings_connect(self, source_object):
+        if self.net.connection_status in (ConnectionStatus.NOT_CONNECTED,
+                                            ConnectionStatus.CONNECTION_LOST):
+            self.net.connect_weechat()
+        elif self.net.connection_status in (ConnectionStatus.CONNECTED,
+                                                ConnectionStatus.CONNECTING):
+            self.net.disconnect_weechat()
+            self.net.connect_weechat()
 
     def _connection_changed(self, source_object):
         self.update_headerbar()
