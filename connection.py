@@ -75,7 +75,7 @@ class ConnectionSettings(Gtk.Window):
     def display(self):
         self.show_all()
         self.fill_in_settings()
-        
+
     def on_cancel(self, widget):
         self.hide()
     

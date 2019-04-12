@@ -39,8 +39,6 @@ FUN_MSG="\n\n\n\n\n\n\n\n\n\n\n\n"\
 
 class MainWindow(Gtk.ApplicationWindow):
     """GTK Main Window."""
-    """Should probably switch to GTK Application class later on, """
-    """but does not matter now."""
     def __init__(self, config, *args, **kwargs):
         Gtk.Window.__init__(self, *args, **kwargs)
         self.set_default_size(950,700)
