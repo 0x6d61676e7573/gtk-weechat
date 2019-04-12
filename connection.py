@@ -68,20 +68,13 @@ class ConnectionSettings(Gtk.Window):
         grid.attach(switch2_box, 1,4,1,1)
         switch1_box.pack_start(self.switch1, False, False, 0)
         switch2_box.pack_start(self.switch2, False, False, 0)
-        button_box=Gtk.Box(spacing=10)
-        button_box.set_margin_top(10)
         
-        grid.attach(button_box,0,5,2,1)
-        save_button=Gtk.Button(label="Save")
         cancel_button=Gtk.Button(label="Cancel")
         connect_button=Gtk.Button(label="Connect")
-        headerbar.pack_end(save_button)
+        headerbar.pack_end(connect_button)
         headerbar.pack_start(cancel_button)
-        button_box.pack_end(connect_button,False,False,0)
-        #button_box.set_center_widget(connect_button)
         
         cancel_button.connect("clicked", self.on_cancel)
-        save_button.connect("clicked", self.on_saved)
         connect_button.connect("clicked", self.on_connect)
         
     def display(self):
@@ -91,17 +84,17 @@ class ConnectionSettings(Gtk.Window):
     def on_cancel(self, widget):
         self.hide()
     
-    def on_saved(self, widget):
+    def save_config(self):
         self.config["relay"]["server"]=self.entry1.get_text()
         self.config["relay"]["port"]=self.entry2.get_text()
         self.config["relay"]["password"]=self.entry3.get_text()
         self.config["relay"]["ssl"]= "on" if self.switch1.get_active() else "off"
         self.config["relay"]["autoconnect"]= "on" if self.switch2.get_active() else "off"
         config.write(self.config)
-        self.on_cancel(widget)
+        self.hide()
 
     def on_connect(self,widget):
-        self.on_saved(widget)
+        self.save_config()
         self.emit("connect")
         self.on_cancel(widget)
 
