@@ -116,7 +116,7 @@ class BufferWidget(Gtk.Grid):
         self.textview.set_editable(False)
         self.textview.set_can_focus(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        self.textview.set_monospace(True)
+        #self.textview.set_monospace(True)
         self.scrolledwindow.add(self.textview)
         self.attach(self.scrolledwindow,0,0,1,1)
         self.adjustment=self.textview.get_vadjustment()
