@@ -55,12 +55,10 @@ class MainWindow(Gtk.ApplicationWindow):
         self.buffers=BufferList()
         self.buffers.connect("bufferSwitched", self.on_buffer_switched)
         
-        # Set up GTK Grid
-        grid=Gtk.Grid()
-        grid.set_column_spacing(3)
-        grid.set_row_spacing(3)
-        self.add(grid)
-        
+        # Set up GTK box
+        box_horizontal=Gtk.Box(Gtk.Orientation.HORIZONTAL,0)
+        self.add(box_horizontal)
+
         # Set up a headerbar
         self.headerbar=Gtk.HeaderBar()
         self.headerbar.set_has_subtitle(True)
@@ -69,12 +67,15 @@ class MainWindow(Gtk.ApplicationWindow):
         self.headerbar.set_show_close_button(True)
         self.set_titlebar(self.headerbar)
         
-        # Set up stack of buffers
-        grid.attach(self.buffers.stack,1,0,1,1)
+        # Add widget showing list of buffers
+        box_horizontal.pack_start(self.buffers.treescrolledwindow, False, False, 0)
+        sep=Gtk.Separator()
+        box_horizontal.pack_start(sep, False, False, 0)
+
+        # Add stack of buffers
+        box_horizontal.pack_start(self.buffers.stack, True, True, 0)
         
-        # Set up widget showing list of buffers
-        grid.attach(self.buffers.treescrolledwindow,0,0,1,1)
-        
+
         # Set up a menu
         menubutton=Gtk.MenuButton()
         self.headerbar.pack_end(menubutton)
