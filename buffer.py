@@ -239,7 +239,7 @@ class Buffer(GObject.GObject):
     def on_send_message(self, source_object):
         self.emit("messageToWeechat", source_object)
     
-    def notify_color(self):
+    def get_notify_color(self):
         return self.colors_for_notify[self.notify_level]
 
     def set_notify_level(self, notify_level):

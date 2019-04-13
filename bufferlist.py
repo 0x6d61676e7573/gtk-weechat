@@ -19,6 +19,62 @@
 #
 
 from gi.repository import Gtk, GObject, Gdk
+import re
+class BufferStore(Gtk.TreeStore):
+    """ Class to hold the buffer data to be display in the left treeview widget."""
+
+    def __init__(self,*args, **kwargs):
+        Gtk.TreeStore.__init__(self,*args,**kwargs)
+
+    def get_tree_iter_from_bufptr(self, bufptr):
+        for tree_iter in self.get_all_tree_iters():
+            if self[tree_iter][2]==bufptr:
+                return tree_iter
+        return None
+
+    def get_path_from_bufptr(self, bufptr):
+        for tree_iter in self.get_all_tree_iters():
+            if self[tree_iter][2]==bufptr:
+                return self.get_path(tree_iter)
+        return None
+
+    def get_all_tree_iters(self):
+        """ Returns a Gtk.TreeIter for each row in the TreeStore. """
+        """ Needed because default iterator only returns root nodes. """
+        tree_iter=self.get_iter_first()
+        while tree_iter is not None:
+            yield tree_iter
+            if self.iter_has_child(tree_iter):
+                tree_iter_child=self.iter_children(tree_iter)
+                while tree_iter_child is not None:
+                    yield tree_iter_child
+                    tree_iter_child=self.iter_next(tree_iter_child)
+            tree_iter=self.iter_next(tree_iter)
+
+    def get_next_tree_iter(self,current_bufptr):
+        for tree_iter in self.get_all_tree_iters():
+            if self[tree_iter][2] == current_bufptr:
+                if self.iter_has_child(tree_iter):
+                    return self.iter_children(tree_iter)
+                else:
+                    tree_iter_next=self.iter_next(tree_iter)
+                    if tree_iter_next==None and self.iter_depth(tree_iter)>0:
+                        tree_iter_parent=self.iter_parent(tree_iter)
+                        tree_iter_next=self.iter_next(tree_iter_parent)
+                    return tree_iter_next
+
+    def get_prev_tree_iter(self,current_bufptr):
+        for tree_iter in self.get_all_tree_iters():
+            if self[tree_iter][2] == current_bufptr:
+                tree_iter_prev=self.iter_previous(tree_iter)
+                if tree_iter_prev is not None:
+                    if self.iter_has_child(tree_iter_prev):
+                        n=self.iter_n_children(tree_iter_prev)
+                        tree_iter_prev=self.iter_nth_child(tree_iter_prev,n-1)
+                    return tree_iter_prev
+                else:
+                    return self.iter_parent(tree_iter)
+
 
 class BufferList(GObject.GObject):
     """Class to integrate all buffer related data and widgets.
@@ -45,8 +101,8 @@ class BufferList(GObject.GObject):
         self.stack.set_visible(self.default_widget)
     
         #Widget displaying list of buffers:
-        self.list_buffers=Gtk.ListStore(str,Gdk.RGBA,str)
-        self.tree=Gtk.TreeView(self.list_buffers)
+        self.buffer_store=BufferStore(str,Gdk.RGBA,str)
+        self.tree=Gtk.TreeView(self.buffer_store)
         self.renderer=Gtk.CellRendererText()
         self.column=Gtk.TreeViewColumn("Name",self.renderer,text=0, foreground_rgba=1)
         self.tree.append_column(self.column)
@@ -73,11 +129,25 @@ class BufferList(GObject.GObject):
     
     def append(self, buf):
         self.buffers.append(buf)
-        self.list_buffers.append((buf.get_name(),buf.colors_for_notify["default"], buf.pointer()))
+        parent=None
+        match=re.match(r"irc\.(\w+)\.#[\w.]+",buf.data.get('full_name'))
+        if match is not None:
+            server=match.group(1)
+            parent=self.get_parent(buf, server)
+        self.buffer_store.append(parent,(buf.get_name(),buf.colors_for_notify["default"], buf.pointer()))
         self.stack.add_named(buf.widget, buf.data["__path"][0])
         self.pointer_to_buffer_map[buf.pointer()]=buf
-        buf.connect("notifyLevelChanged", self.update_buffer_widget)
-        
+        buf.connect("notifyLevelChanged", self.update_buffer_callback)
+
+    def get_parent(self,buf,server):
+        """Return treeiter to row which should be parent of buf"""
+        for buf_iter in self.buffers:
+            if buf_iter.data['full_name']=="irc.server."+server:
+                for row in self.buffer_store:
+                    if row[2]==buf_iter.pointer():
+                        return row.iter
+        return None
+
     def clear(self):
         """ Clears all data related to buffers. """
         self.stack.set_visible(self.default_widget)
@@ -85,12 +155,11 @@ class BufferList(GObject.GObject):
         for buf in self.buffers:
             buf.widget.destroy()
         self.buffers.clear()
-        self.list_buffers.clear()
+        self.buffer_store.clear()
         
     def on_tree_row_clicked(self, source_object, path, column):
         """ Callback for when a buffer is clicked on in the TreeView. """
-        index=path.get_indices()[0]
-        bufptr=self.list_buffers[index][2]
+        bufptr=self.buffer_store[path][2]
         self.show(bufptr)
     
     def show(self, bufptr):
@@ -102,29 +171,35 @@ class BufferList(GObject.GObject):
         buf.widget.scrollbottom()
         buf.widget.entry.grab_focus()
         buf.reset_notify_level()
+        path=self.buffer_store.get_path_from_bufptr(bufptr)
+        if path.get_depth()>1:
+            self.tree.expand_to_path(path)
+        self.tree.get_selection().select_path(path)
         self.emit("bufferSwitched")
         
     def remove(self, bufptr):
+        """ Removes a buffer . """
         buf=self.get_buffer_from_pointer(bufptr)
         if buf is None:
             return
         if buf is self.pointer_to_buffer_map.get("active"):
             self.show(self.buffers[0].pointer())
+        tree_iter=self.buffer_store.get_tree_iter_from_bufptr(bufptr)
+        if tree_iter is not None:
+            self.buffer_store.remove(tree_iter)
         #stack holds a reference to widget, must be explicitly destroyed
         #otherwise a name conflict occurs if the buffer is reopened
         buf.widget.destroy()
         self.buffers.remove(buf)
-        self.update_buffer_widget(None)
         
-        
-    def update_buffer_widget(self, source_object):
-        self.list_buffers.clear()
-        for buf in self.buffers:
-            self.list_buffers.append((buf.get_name(),buf.notify_color(), buf.pointer()))
-        if self.active_buffer() is not None:
-            buf=self.active_buffer()
-            self.tree.get_selection().select_path(Gtk.TreePath([self.buffers.index(buf)]))
+    def update_buffer(self, bufptr):
+        buf=self.get_buffer_from_pointer(bufptr)
+        tree_iter=self.buffer_store.get_tree_iter_from_bufptr(bufptr)
+        self.buffer_store[tree_iter][0:2]=(buf.get_name(), buf.get_notify_color())
     
+    def update_buffer_callback(self, source_object):
+        self.update_buffer(source_object.pointer())
+
     def active_buffer(self):
         return self.pointer_to_buffer_map.get("active")
     
@@ -143,4 +218,14 @@ class BufferList(GObject.GObject):
     def get_buffer_from_pointer(self, pointer):
         return self.pointer_to_buffer_map.get(pointer)
 
-        
+    def on_buffer_next(self, action, param):
+        current_bufptr=self.active_buffer().pointer()
+        tree_iter_next=self.buffer_store.get_next_tree_iter(current_bufptr) 
+        if tree_iter_next is not None:
+            self.show(self.buffer_store[tree_iter_next][2])
+
+    def on_buffer_prev(self, action, param):
+        current_bufptr=self.active_buffer().pointer()
+        tree_iter_prev=self.buffer_store.get_prev_tree_iter(current_bufptr) 
+        if tree_iter_prev is not None:
+            self.show(self.buffer_store[tree_iter_prev][2])

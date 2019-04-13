@@ -27,6 +27,7 @@ import config
 import copy
 from bufferlist import BufferList 
 from connection import ConnectionSettings
+import re
 
 FUN_MSG="\n\n\n\n\n\n\n\n\n\n\n\n"\
 " ______  _________ __ ___       __         ______________        _____ \n"\
@@ -108,10 +109,10 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Set up actions
         action = Gio.SimpleAction.new("buffer_next", None)
-        action.connect("activate", self.on_buffer_next)
+        action.connect("activate", self.buffers.on_buffer_next)
         self.add_action(action)
         action = Gio.SimpleAction.new("buffer_prev", None)
-        action.connect("activate", self.on_buffer_prev)
+        action.connect("activate", self.buffers.on_buffer_prev)
         self.add_action(action)
         
         if self.net.check_settings() is True and \
@@ -147,24 +148,6 @@ class MainWindow(Gtk.ApplicationWindow):
             self.menuitem_disconnect.set_sensitive(False)
             self.menuitem_connect.set_sensitive(True)
 
-    def on_buffer_next(self, action, param):
-        current_bufptr=self.buffers.active_buffer().pointer()
-        for row in self.buffers.list_buffers:
-            if row[2] == current_bufptr:
-                next_row=row.get_next()
-                if next_row:
-                    self.buffers.show(next_row[2])
-                    return
-
-    def on_buffer_prev(self, action, param):
-        current_bufptr=self.buffers.active_buffer().pointer()
-        for row in self.buffers.list_buffers:
-            if row[2] == current_bufptr:
-                prev_row=row.get_previous()
-                if prev_row:
-                    self.buffers.show(prev_row[2])
-                    return
-        
     def on_settings_clicked(self, widget):
         connectionSettings.display()
         
@@ -365,7 +348,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 elif message.msgid == '_buffer_renamed':
                     buf.data['full_name'] = item['full_name']
                     buf.data['short_name'] = item['short_name']
-                    self.buffers.update_buffer_widget(None)
+                    self.buffers.update_buffer(bufptr)
                     self.update_headerbar()
                 elif message.msgid == '_buffer_title_changed':
                     buf.data['title'] = item['title']

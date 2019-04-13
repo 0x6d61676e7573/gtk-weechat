@@ -13,7 +13,6 @@ Add code to fetch and display images.
 Make clicking on nick open query buffer.
 Implement nick/prefix indentation.
 Application icon.
-Buffer tree instead of list.
 Add option to launch local weechat backend automatically and connect to it (if possible to set up relay from commandline).
 Buttons for join/part, add/connect networks.
 
