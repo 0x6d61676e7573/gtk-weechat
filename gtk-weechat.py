@@ -115,6 +115,7 @@ class MainWindow(Gtk.ApplicationWindow):
         action.connect("activate", self.buffers.on_buffer_prev)
         self.add_action(action)
         
+        # Autoconnect if necessary
         if self.net.check_settings() is True and \
                             self.config["relay"]["autoconnect"]=="on":
             if self.net.connect_weechat() is False:
@@ -124,6 +125,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.menuitem_disconnect.set_sensitive(True)
         else:
             connectionSettings.display()
+
     def on_settings_connect(self, source_object):
         if self.net.connection_status in (ConnectionStatus.NOT_CONNECTED,
                                             ConnectionStatus.CONNECTION_LOST):
