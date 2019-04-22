@@ -73,6 +73,8 @@ class ConnectionSettings(Gtk.Window):
         connect_button=Gtk.Button(label="Connect")
         headerbar.pack_end(connect_button)
         headerbar.pack_start(cancel_button)
+        style_context=connect_button.get_style_context()
+        style_context.add_class("suggested-action")
         
         cancel_button.connect("clicked", self.on_cancel)
         connect_button.connect("clicked", self.on_connect)
