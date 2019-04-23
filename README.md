@@ -7,7 +7,6 @@ PyGObject
 
 # TODO:
 High priority:
-Add enum to represent message types
 Add ctrl-c copy
 Fix broken auto scroll
 Tab completion
