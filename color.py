@@ -121,8 +121,8 @@ class Color():
         try:
             index = int(color)
             if index == 0:      # default color, skip color code
-                return "\x01({}{})".format(fg_bg, attrs)
-            else: 
+                return "\x01({}{}$)".format(fg_bg, attrs)
+            else:
                 return self._convert_terminal_color(fg_bg, attrs,
                                                 WEECHAT_BASIC_COLORS[index][1])
         except:  # noqa: E722
