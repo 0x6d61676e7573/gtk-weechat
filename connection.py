@@ -75,6 +75,8 @@ class ConnectionSettings(Gtk.Window):
         headerbar.pack_start(cancel_button)
         style_context=connect_button.get_style_context()
         style_context.add_class("suggested-action")
+        connect_button.set_can_default(True)
+        connect_button.grab_default()
         
         cancel_button.connect("clicked", self.on_cancel)
         connect_button.connect("clicked", self.on_connect)
@@ -97,8 +99,8 @@ class ConnectionSettings(Gtk.Window):
 
     def on_connect(self,widget):
         self.save_config()
-        self.emit("connect")
         self.on_cancel(widget)
+        self.emit("connect")
 
     def fill_in_settings(self):
         self.entry1.set_text(self.config["relay"]["server"])
