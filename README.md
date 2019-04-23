@@ -20,6 +20,7 @@ Check if possible to make app aware of theme switch
 Make network connection aware of closed socket and try to reconnect
 Check if possible to synch buffer notification levels with internal weechat 
 Add a way to use dark color scheme without changing system color scheme
+Make connection dialog behave as expected on Enter press
 
 Low priority:
 Make things configurable using stylesheets
