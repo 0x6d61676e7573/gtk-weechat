@@ -90,10 +90,6 @@ class MainWindow(Gtk.ApplicationWindow):
         self.menuitem_disconnect.set_sensitive(False)
         self.menuitem_disconnect.show()
         menu.append(self.menuitem_disconnect)
-        menuitem_settings=Gtk.MenuItem(label="Connection Details")
-        menuitem_settings.connect("activate", self.on_settings_clicked)
-        menuitem_settings.show()
-        menu.append(menuitem_settings)
         menuitem_quit=Gtk.MenuItem(label="Quit")
         menuitem_quit.set_action_name("app.quit")
         menuitem_quit.show()
@@ -128,6 +124,9 @@ class MainWindow(Gtk.ApplicationWindow):
             connectionSettings.display()
 
     def on_settings_connect(self, source_object):
+        if self.net.check_settings() is False:
+            connectionSettings.display()
+            return
         if self.net.connection_status in (ConnectionStatus.NOT_CONNECTED,
                                             ConnectionStatus.CONNECTION_LOST):
             self.net.connect_weechat()
@@ -151,18 +150,9 @@ class MainWindow(Gtk.ApplicationWindow):
             self.menuitem_disconnect.set_sensitive(False)
             self.menuitem_connect.set_sensitive(True)
 
-    def on_settings_clicked(self, widget):
-        connectionSettings.display()
-        
     def on_connect_clicked(self, widget):
         """Callback function for when the connect button is clicked."""
-        if self.net.check_settings() is False:
-            connectionSettings.display()
-            return
-        print("Connecting")
-        self.buffers.clear()
-        self.headerbar.set_subtitle("Connecting...")
-        self.net.connect_weechat()
+        connectionSettings.display()
         
     def on_disconnect_clicked(self, widget):
         """Callback function for when the disconnect button is clicked."""
@@ -253,7 +243,7 @@ class MainWindow(Gtk.ApplicationWindow):
                     lines.append(
                         (ptrbuf,
                          (item['date'], item['prefix'],
-                          item['message']))
+                          item['message'], item['tags_array']))
                     )
                     buf.set_notify_level(notify_level)
             if message.msgid == 'listlines':
@@ -357,8 +347,7 @@ class MainWindow(Gtk.ApplicationWindow):
                     buf.data['title'] = item['title']
                     self.update_headerbar()
                 elif message.msgid == '_buffer_cleared':
-                    buf.chat.delete(
-                        *self.buffers[index].chat.get_bounds())
+                    buf.clear()
                 elif message.msgid.startswith('_buffer_localvar_'):
                     buf.data['local_variables'] = \
                         item['local_variables']
