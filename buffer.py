@@ -21,11 +21,22 @@
 from gi.repository import Gtk, Gdk, GObject, Pango
 import color
 import config
+from enum import Enum
+import re
+
+class MessageType(Enum):
+    SERVER_MESSAGE=0
+    CHAT_MESSAGE=1
 
 class ChatTextBuffer(Gtk.TextBuffer):
     """Textbuffer to store buffer text."""
-    def __init__(self, darkmode=False):
+    def __init__(self, darkmode=False, layout=None):
         Gtk.TextBuffer.__init__(self)
+        self.layout=layout
+        self.last_prefix=None
+        self.last_message_type=None
+        self.longest_prefix=0
+        self.indent_tag_list=[]
         
         #We need the color class that convert formatting codes in network 
         #data to codes that the parser functions in this class can handle
@@ -38,27 +49,44 @@ class ChatTextBuffer(Gtk.TextBuffer):
         reverse_tag=self.create_tag() #reverse video is not implemented
         self.attr_tag={"*":bold_tag,"_":underline_tag,"/":italic_tag, "!":reverse_tag}
 
-    def display(self, time, prefix, text):
+    def display(self, time, prefix, text, tags_array):
         """Adds text to the buffer."""
         prefix=self._color.convert(prefix)
         text=self._color.convert(text)
-        if prefix:
-            self._display_with_colors(prefix + " ")
-            #self.insert(self.get_end_iter(), prefix + " " )
+        has_prefix=False
+        message_type=self.get_message_type(tags_array)
+
+        if prefix is not None and prefix != self.last_prefix:
+            if message_type==MessageType.SERVER_MESSAGE:
+                prefix=re.sub("-->", "\u27F6", prefix)
+                prefix=re.sub("<--", "\u27F5", prefix)
+                prefix=re.sub("--", "\u2014", prefix)
+            self.last_prefix=prefix
+            self._display_with_colors(prefix + " ", indent="prefix",msg_type=message_type)
+            has_prefix=True
+
         if text:
-            self._display_with_colors(text)
-            #self.insert(self.get_end_iter(),text)
+            self._display_with_colors(text, indent="no_prefix" if has_prefix==False else "text", msg_type=message_type)
             if text[-1]!="\n":
                 self.insert(self.get_end_iter(),"\n")
         else:
             self.insert(self.get_end_iter(),"\n")
+        self.last_message_type=message_type
     
-    def _display_with_colors(self, string):
+    def _display_with_colors(self, string, indent=False, msg_type=MessageType.CHAT_MESSAGE):
+        indent_tag=self.create_tag()
+        self.indent_tag_list.append(indent_tag)
         items = string.split('\x01')
         color_tag=self.create_tag() 
         attr_list=[]      
-        for i, item in enumerate(items):
-            if i > 0 and item.startswith('('):
+        stripped_items=[]
+        # The way split works, the first item will be
+        # either '' or not preceded by \x01
+        if len(items[0]) > 0:
+            self.insert_with_tags(self.get_end_iter(),items[0], indent_tag)
+            stripped_items.append(items[0])
+        for item in items[1:]:
+            if item.startswith('('):
                 pos = item.find(')')
                 if pos >= 2:
                     action = item[1]
@@ -86,26 +114,56 @@ class ChatTextBuffer(Gtk.TextBuffer):
                                 code = code[1:]
                             if code:
                                 if action=="F":
-                                    rgba=Gdk.RGBA()
-                                    rgba.parse(code)
-                                    color_tag=self.create_tag(foreground_rgba=rgba)
+                                    if code != "$":
+                                        rgba=Gdk.RGBA()
+                                        rgba.parse(code)
+                                        color_tag=self.create_tag(foreground_rgba=rgba)
                                 elif action=="B":
-                                    rgba=Gdk.RGBA()
-                                    rgba.parse(code)
-                                    color_tag.props.background_rgba=rgba
-                            else:
-                                color_tag=self.create_tag() #if no color code, use a dummy tag
+                                    if code != "$":
+                                        rgba=Gdk.RGBA()
+                                        rgba.parse(code)
+                                        color_tag.props.background_rgba=rgba
                     item = item[pos+1:]
             if len(item) > 0:
-                self.insert_with_tags(self.get_end_iter(),item, color_tag, *attr_list)
+                self.insert_with_tags(self.get_end_iter(),item, color_tag, *attr_list, indent_tag)
+                stripped_items.append(item)
+        if indent == "prefix":
+            text=''.join(stripped_items)
+            width= self.get_text_pixel_width(text, True if self.attr_tag["*"] in attr_list else False)
+            indent_tag.props.indent=-width
+            indent_tag.props.left_margin=self.longest_prefix-width
+            if msg_type==MessageType.CHAT_MESSAGE or msg_type!=self.last_message_type:
+                indent_tag.props.pixels_above_lines=10
+        elif indent == "no_prefix":
+            indent_tag.props.left_margin=self.longest_prefix
+
+    def get_text_pixel_width(self, text, bold=False):
+        self.layout.set_text(text,-1)
+        self.layout.set_attributes(None)
+        if bold:
+            #workaround to get an attribute list in pygobject:
+            attr_list=Pango.parse_markup("<b>"+text+"</b>",-1,"0")[1]
+            self.layout.set_attributes(attr_list)
+        (width, _)=self.layout.get_pixel_size()
+        if width > self.longest_prefix:
+            for tag in self.indent_tag_list:
+                tag.props.left_margin+=width-self.longest_prefix
+            self.longest_prefix=width
+        return width
+
+    def get_message_type(self, tags_array):
+        if "irc_privmsg" in tags_array:
+            return MessageType.CHAT_MESSAGE
+        else:
+            return MessageType.SERVER_MESSAGE
+
         
-class BufferWidget(Gtk.Grid):
-    """Class that so far only adds a layer of indirection."""
-    """In qweechat, this class also has nicklist and text entry widgets."""
+class BufferWidget(Gtk.Box):
     def __init__(self):
-        Gtk.Grid.__init__(self)
-        self.set_row_spacing(2)
-        self.set_column_spacing(2)
+        Gtk.Box.__init__(self)
+        self.set_orientation(Gtk.Orientation.VERTICAL)
+        horizontal_box=Gtk.Box(Gtk.Orientation.HORIZONTAL)
+        self.pack_start(horizontal_box,True,True,0)
         
         # TextView widget
         self.textview=Gtk.TextView()
@@ -116,15 +174,14 @@ class BufferWidget(Gtk.Grid):
         self.textview.set_editable(False)
         self.textview.set_can_focus(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        #self.textview.set_monospace(True)
         self.scrolledwindow.add(self.textview)
-        self.attach(self.scrolledwindow,0,0,1,1)
+        horizontal_box.pack_start(self.scrolledwindow, True, True, 0)
         self.adjustment=self.textview.get_vadjustment()
         
         # Entry widget
         self.entry=Gtk.Entry()
-        self.attach(self.entry,0,1,2,1)
-        
+        self.pack_start(self.entry, False, False, 0)
+
         # Nicklist widget
         nicklist_renderer=Gtk.CellRendererText()
         nicklist_column=Gtk.TreeViewColumn("",nicklist_renderer,text=0)
@@ -132,11 +189,14 @@ class BufferWidget(Gtk.Grid):
         self.nick_display_widget.set_headers_visible(False)
         self.nick_display_widget.set_can_focus(False)
         self.nick_display_widget.append_column(nicklist_column)
+        self.nick_display_widget.get_selection().set_mode(Gtk.SelectionMode.NONE)
         scrolledwindow=Gtk.ScrolledWindow()
         scrolledwindow.set_propagate_natural_width(True)
         scrolledwindow.add(self.nick_display_widget)
-        self.attach(scrolledwindow,1,0,1,1)
-        
+        sep=Gtk.Separator()
+        horizontal_box.pack_start(sep, False, False, 0)
+        horizontal_box.pack_start(scrolledwindow,False,False,0)
+
     def scrollbottom(self):
         """Scrolls textview widget to it's bottom state."""
         value=self.adjustment.get_upper()-self.adjustment.get_page_size()
@@ -158,7 +218,7 @@ class Buffer(GObject.GObject):
         self.widget=BufferWidget()
         self.widget.entry.connect("activate", self.on_send_message)
         self.nicklist_data=Gtk.ListStore(str)
-        self.chat=ChatTextBuffer(darkmode)
+        self.chat=ChatTextBuffer(darkmode, layout=self.widget.textview.create_pango_layout())
         self.widget.textview.set_buffer(self.chat)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
         styleContext=self.widget.get_style_context()
@@ -263,3 +323,7 @@ class Buffer(GObject.GObject):
     def pointer(self):
         """Return pointer on buffer."""
         return self.data.get("__path",[""])[0]
+
+    def clear(self):
+        self.chat.delete(*self.chat.get_bounds())
+
