@@ -30,7 +30,7 @@ _PROTO_INIT_CMD = 'init password={password},compression={compression}'
 
 _PROTO_SYNC_CMDS = '(listbuffers) hdata buffer:gui_buffers(*) number,full_name,short_name,type,nicklist,title,local_variables\n' \
     '(listlines) hdata buffer:gui_buffers(*)/own_lines/last_line(-{lines})/'\
-    'data date,displayed,prefix,message\n'\
+    'data date,displayed,prefix,message,tags_array\n'\
     '(nicklist) nicklist\n'\
     'sync\n'
 
