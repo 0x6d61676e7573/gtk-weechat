@@ -164,6 +164,7 @@ class BufferWidget(Gtk.Box):
         self.set_orientation(Gtk.Orientation.VERTICAL)
         horizontal_box=Gtk.Box(Gtk.Orientation.HORIZONTAL)
         self.pack_start(horizontal_box,True,True,0)
+        self.end_mark=None
         
         # TextView widget
         self.textview=Gtk.TextView()
@@ -199,9 +200,11 @@ class BufferWidget(Gtk.Box):
 
     def scrollbottom(self):
         """Scrolls textview widget to it's bottom state."""
-        value=self.adjustment.get_upper()-self.adjustment.get_page_size()
-        self.adjustment.set_value(value)
-
+        #Make sure widget is properly updated before trying to scroll it:
+        while Gtk.events_pending():
+            Gtk.main_iteration()
+        if self.end_mark is not None:
+            self.textview.scroll_to_mark(self.end_mark,0, False, 0,0)
         
 class Buffer(GObject.GObject):
     """A WeeChat buffer that holds buffer data."""
@@ -220,6 +223,7 @@ class Buffer(GObject.GObject):
         self.nicklist_data=Gtk.ListStore(str)
         self.chat=ChatTextBuffer(darkmode, layout=self.widget.textview.create_pango_layout())
         self.widget.textview.set_buffer(self.chat)
+        self.widget.end_mark=self.chat.create_mark(None, self.chat.get_end_iter(), False)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
         styleContext=self.widget.get_style_context()
         (color_is_defined,theme_fg_color)=styleContext.lookup_color("theme_fg_color") 

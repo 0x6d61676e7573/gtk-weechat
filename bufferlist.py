@@ -168,7 +168,6 @@ class BufferList(GObject.GObject):
         self.pointer_to_buffer_map["active"]=buf
         buf.widget.show_all()
         self.stack.set_visible_child(buf.widget)
-        buf.widget.scrollbottom()
         buf.widget.entry.grab_focus()
         buf.reset_notify_level()
         path=self.buffer_store.get_path_from_bufptr(bufptr)
@@ -176,6 +175,7 @@ class BufferList(GObject.GObject):
             self.tree.expand_to_path(path)
         self.tree.get_selection().select_path(path)
         self.emit("bufferSwitched")
+        buf.widget.scrollbottom()
         
     def remove(self, bufptr):
         """ Removes a buffer . """
