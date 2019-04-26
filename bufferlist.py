@@ -161,6 +161,16 @@ class BufferList(GObject.GObject):
         """ Callback for when a buffer is clicked on in the TreeView. """
         bufptr=self.buffer_store[path][2]
         self.show(bufptr)
+
+    def on_copy_to_clipboard(self, action, param):
+        buf=self.active_buffer()
+        if buf is None:
+            return
+        if buf.widget.entry.get_selection_bounds() is not ():
+            buf.widget.entry.emit("copy-clipboard")
+            return
+        if buf.chat.get_selection_bounds()is not ():
+            buf.widget.textview.emit("copy-clipboard")
     
     def show(self, bufptr):
         """ Shows a buffer in the main window given its pointer. """

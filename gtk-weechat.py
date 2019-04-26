@@ -111,6 +111,9 @@ class MainWindow(Gtk.ApplicationWindow):
         action = Gio.SimpleAction.new("buffer_prev", None)
         action.connect("activate", self.buffers.on_buffer_prev)
         self.add_action(action)
+        action = Gio.SimpleAction.new("copy_to_clipboard", None)
+        action.connect("activate", self.buffers.on_copy_to_clipboard)
+        self.add_action(action)
         
         # Autoconnect if necessary
         if self.net.check_settings() is True and \
@@ -394,6 +397,7 @@ class Application(Gtk.Application):
         self.window=MainWindow(self.config, title="Gtk-Weechat", application=self)
         self.set_accels_for_action("win.buffer_next", ["<Control>Next", "<Alt>Down"])
         self.set_accels_for_action("win.buffer_prev", ["<Control>Prior", "<Alt>Up"])
+        self.set_accels_for_action("win.copy_to_clipboard", ["<Control>c"])
     
     def do_activate(self):
         if not self.window:
