@@ -7,7 +7,6 @@ PyGObject
 
 # TODO:
 High priority:
-Fix broken auto scroll
 Tab completion
 Add time info
 
