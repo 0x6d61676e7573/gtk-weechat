@@ -164,13 +164,23 @@ class BufferWidget(Gtk.Box):
         self.set_orientation(Gtk.Orientation.VERTICAL)
         horizontal_box=Gtk.Box(Gtk.Orientation.HORIZONTAL)
         self.pack_start(horizontal_box,True,True,0)
-        self.end_mark=None
+        self.active=False
+
+        # Scrolling:
+        self.autoscroll=True
         
         # TextView widget
         self.textview=Gtk.TextView()
         self.scrolledwindow=Gtk.ScrolledWindow()
         self.scrolledwindow.set_hexpand(True)
         self.scrolledwindow.set_vexpand(True)
+        #self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.ALWAYS)
+        self.scrolledwindow.connect("scroll-event", self.on_scroll_event)
+        self.scrolledwindow.connect("scroll-child", self.on_scroll_child)
+        self.scrolledwindow.connect("edge-reached", self.on_edge_reached)
+        vscroll=self.scrolledwindow.get_vscrollbar()
+        vscroll.connect("change-value", self.on_changed_value)
+        self.textview.connect("size-allocate", self.on_size_allocate)
         self.textview.set_cursor_visible(False)
         self.textview.set_editable(False)
         self.textview.set_can_focus(False)
@@ -198,14 +208,56 @@ class BufferWidget(Gtk.Box):
         horizontal_box.pack_start(sep, False, False, 0)
         horizontal_box.pack_start(scrolledwindow,False,False,0)
 
+    def on_edge_reached(self,source_widget,pos):
+        """This callback gets called when chat is scrolled to top/bottom."""
+       # if not self.active:
+       #     return
+        if pos == Gtk.PositionType.BOTTOM:
+            adj=self.scrolledwindow.get_vadjustment()
+            if adj.get_value()+adj.get_page_size()>=adj.get_upper():
+                self.autoscroll=True
+
+    def on_changed_value(self, source, scroll, value):
+        """This function is called when the scrollbar is dragged up/down."""
+        if scroll in (Gtk.ScrollType.START, Gtk.ScrollType.PAGE_UP, \
+                Gtk.ScrollType.STEP_UP, Gtk.ScrollType.JUMP):
+            adj=self.scrolledwindow.get_vadjustment()
+            if adj.get_value()+adj.get_page_size()<adj.get_upper():
+                self.autoscroll=False
+
+    def on_size_allocate(self, source_widget, allocation):
+        """Callback for Gtk.Widget size-allocate signal.
+        Needed to fix autoscroll that in some situations
+        seemed to jump to bottom before widget had finished
+        rendering, causing autoscroll to malfunction."""
+        self.scrollbottom()
+
+    def on_scroll_child(self, source_event, scroll, horizontal):
+        """This callback is called when scrolling with up/down/pgup/pgdown."""
+        if scroll in (Gtk.ScrollType.STEP_BACKWARD, 
+                Gtk.ScrollType.START, Gtk.ScrollType.PAGE_BACKWARD):
+            self.autoscroll=False
+
+    def on_scroll_event(self, source_object, event):
+        """This callback is called when scrolling with mousewheel."""
+        if event.direction == Gdk.ScrollDirection.UP:
+            self.autoscroll=False
+        elif event.direction == Gdk.ScrollDirection.SMOOTH:
+            if event.delta_y<0:
+                self.autoscroll=False
+
     def scrollbottom(self):
-        """Scrolls textview widget to it's bottom state."""
+        """Scrolls to bottom if autoscroll is True."""
+        if not self.active:
+            return
+        if not self.autoscroll:
+            return
         #Make sure widget is properly updated before trying to scroll it:
         while Gtk.events_pending():
             Gtk.main_iteration()
-        if self.end_mark is not None:
-            self.textview.scroll_to_mark(self.end_mark,0, False, 0,0)
-        
+        adj=self.scrolledwindow.get_vadjustment()
+        adj.set_value(adj.get_upper()-adj.get_page_size())
+
 class Buffer(GObject.GObject):
     """A WeeChat buffer that holds buffer data."""
     __gsignals__ = {
@@ -223,7 +275,6 @@ class Buffer(GObject.GObject):
         self.nicklist_data=Gtk.ListStore(str)
         self.chat=ChatTextBuffer(darkmode, layout=self.widget.textview.create_pango_layout())
         self.widget.textview.set_buffer(self.chat)
-        self.widget.end_mark=self.chat.create_mark(None, self.chat.get_end_iter(), False)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
         styleContext=self.widget.get_style_context()
         (color_is_defined,theme_fg_color)=styleContext.lookup_color("theme_fg_color") 

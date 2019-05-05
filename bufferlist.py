@@ -174,6 +174,9 @@ class BufferList(GObject.GObject):
     
     def show(self, bufptr):
         """ Shows a buffer in the main window given its pointer. """
+        active_buf=self.active_buffer()
+        if active_buf is not None:
+            active_buf.widget.active=False
         buf=self.get_buffer_from_pointer(bufptr)
         self.pointer_to_buffer_map["active"]=buf
         buf.widget.show_all()
@@ -185,6 +188,7 @@ class BufferList(GObject.GObject):
             self.tree.expand_to_path(path)
         self.tree.get_selection().select_path(path)
         self.emit("bufferSwitched")
+        buf.widget.active=True
         buf.widget.scrollbottom()
         
     def remove(self, bufptr):
