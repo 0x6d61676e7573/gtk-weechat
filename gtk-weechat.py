@@ -78,6 +78,11 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Set up a menu
         menubutton=Gtk.MenuButton()
+        icon=Gio.ThemedIcon(name="open-menu-symbolic")
+        image=Gtk.Image.new_from_gicon(icon,Gtk.IconSize.BUTTON)
+        menubutton.get_child().destroy()
+        menubutton.add(image)
+        menubutton.show_all()
         self.headerbar.pack_end(menubutton)
         menu = Gtk.Menu()
         menu.set_halign(Gtk.Align(3))
