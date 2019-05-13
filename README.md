@@ -7,7 +7,6 @@ PyGObject
 
 # TODO:
 High priority:
-Tab completion
 Add time info
 
 Medium priority:
