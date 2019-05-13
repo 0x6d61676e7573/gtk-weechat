@@ -191,7 +191,10 @@ class BufferWidget(Gtk.Box):
         
         # Entry widget
         self.entry=Gtk.Entry()
+        self.entry.connect("key-press-event", self.on_key_press)
         self.pack_start(self.entry, False, False, 0)
+        self.completions=None
+        self.completions_word_offset=None
 
         # Nicklist widget
         nicklist_renderer=Gtk.CellRendererText()
@@ -207,6 +210,40 @@ class BufferWidget(Gtk.Box):
         sep=Gtk.Separator()
         horizontal_box.pack_start(sep, False, False, 0)
         horizontal_box.pack_start(scrolledwindow,False,False,0)
+
+    def on_key_press(self, source_widget, event):
+        if event.keyval == Gdk.KEY_Tab:
+            text=self.entry.get_text()
+            cursor_pos=self.entry.props.cursor_position
+            text=text[:cursor_pos]
+            word_pos=text.rfind(' ')+1 if self.completions_word_offset is None else self.completions_word_offset
+            self.completions_word_offset=word_pos
+            if cursor_pos==word_pos:
+                return True
+            text=text[word_pos:]
+            text=text.lower()
+            if self.completions is None:
+                self.completions=[]
+                model=self.nick_display_widget.get_model()
+                for nick in model:
+                    if nick[0].lower().find(text) == 1:
+                        self.completions.append(nick[0][1:])
+            if self.completions == []:
+                self.completions=None
+                return True
+            match=self.completions.pop(0)
+            self.completions.append(match)
+            buf=self.entry.get_buffer()
+            buf.delete_text(word_pos, cursor_pos-word_pos)
+            if word_pos==0:
+                match+=": "
+            buf.insert_text(word_pos, match, -1)
+            self.entry.emit("move-cursor", Gtk.MovementStep.VISUAL_POSITIONS, len(match), False)
+            return True
+        else:
+            self.completions=None
+            self.completions_word_offset=None
+            return False
 
     def on_edge_reached(self,source_widget,pos):
         """This callback gets called when chat is scrolled to top/bottom."""
