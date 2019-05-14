@@ -221,7 +221,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 continue
             self.buffers.clear()
             for item in obj.value['items']:
-                buf = Buffer(item, darkmode=self.darkmode)
+                buf = Buffer(self.config, item, darkmode=self.darkmode)
                 self.buffers.append(buf)
                 buf.connect("messageToWeechat", self.on_send_message)
 
@@ -322,7 +322,7 @@ class MainWindow(Gtk.ApplicationWindow):
             if obj.objtype != 'hda' or obj.value['path'][-1] != 'buffer':
                 continue
             for item in obj.value['items']:
-                buf = Buffer(item, darkmode=self.darkmode)
+                buf = Buffer(self.config, item, darkmode=self.darkmode)
                 self.buffers.append(buf)
                 buf.connect("messageToWeechat", self.on_send_message)
                 self.buffers.show(buf.pointer())

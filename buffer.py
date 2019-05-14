@@ -20,29 +20,34 @@
 
 from gi.repository import Gtk, Gdk, GObject, Pango
 import color
-import config
+import config as config_module
 from enum import Enum
 import re
+import datetime
 
 class MessageType(Enum):
     SERVER_MESSAGE=0
     CHAT_MESSAGE=1
+    TIME_STAMP=2
 
 class ChatTextBuffer(Gtk.TextBuffer):
     """Textbuffer to store buffer text."""
-    def __init__(self, darkmode=False, layout=None):
+    def __init__(self, config, darkmode=False, layout=None):
         Gtk.TextBuffer.__init__(self)
+        self.config=config
         self.layout=layout
         self.last_prefix=None
         self.last_message_type=None
         self.longest_prefix=0
         self.indent_tag_list=[]
+        self.d_previous=datetime.datetime.fromtimestamp(0)
         
         #We need the color class that convert formatting codes in network 
         #data to codes that the parser functions in this class can handle
-        self._color = color.Color(config.color_options(darkmode), False)
+        self._color = color.Color(config_module.color_options(darkmode), False)
         
         #Text tags used for formatting
+        self.time_tag=self.create_tag(justification=Gtk.Justification.RIGHT, weight=Pango.Weight.BOLD)
         bold_tag=self.create_tag(weight=Pango.Weight.BOLD)
         underline_tag=self.create_tag(underline=Pango.Underline.SINGLE)
         italic_tag=self.create_tag(style=Pango.Style.ITALIC)
@@ -51,10 +56,19 @@ class ChatTextBuffer(Gtk.TextBuffer):
 
     def display(self, time, prefix, text, tags_array):
         """Adds text to the buffer."""
+        message_type=self.get_message_type(tags_array)
         prefix=self._color.convert(prefix)
         text=self._color.convert(text)
         has_prefix=False
-        message_type=self.get_message_type(tags_array)
+        if time==0:
+            d = datetime.datetime.now()
+        else:
+            d = datetime.datetime.fromtimestamp(float(time))
+        delta = d-self.d_previous
+        if delta.total_seconds() >= 5*60 and message_type != MessageType.SERVER_MESSAGE and prefix != self.last_prefix:
+            self.insert_with_tags(self.get_end_iter(),d.strftime(self.config['look']['buffer_time_format']) + "\n", self.time_tag)
+            self.last_message_type=MessageType.TIME_STAMP
+            self.d_previous=d
 
         if prefix is not None and prefix != self.last_prefix:
             if message_type==MessageType.SERVER_MESSAGE:
@@ -64,7 +78,6 @@ class ChatTextBuffer(Gtk.TextBuffer):
             self.last_prefix=prefix
             self._display_with_colors(prefix + " ", indent="prefix",msg_type=message_type)
             has_prefix=True
-
         if text:
             self._display_with_colors(text, indent="no_prefix" if has_prefix==False else "text", msg_type=message_type)
             if text[-1]!="\n":
@@ -132,7 +145,7 @@ class ChatTextBuffer(Gtk.TextBuffer):
             width= self.get_text_pixel_width(text, True if self.attr_tag["*"] in attr_list else False)
             indent_tag.props.indent=-width
             indent_tag.props.left_margin=self.longest_prefix-width
-            if msg_type==MessageType.CHAT_MESSAGE or msg_type!=self.last_message_type:
+            if self.last_message_type != MessageType.TIME_STAMP and (msg_type==MessageType.CHAT_MESSAGE or msg_type!=self.last_message_type):
                 indent_tag.props.pixels_above_lines=10
         elif indent == "no_prefix":
             indent_tag.props.left_margin=self.longest_prefix
@@ -303,14 +316,15 @@ class Buffer(GObject.GObject):
         'notifyLevelChanged' : (GObject.SIGNAL_RUN_LAST, None,
                                 tuple())
         }
-    def __init__(self, data={}, darkmode=False):
+    def __init__(self, config, data={}, darkmode=False):
         GObject.GObject.__init__(self)
+        self.config=config
         self.data=data
         self.nicklist={}
         self.widget=BufferWidget()
         self.widget.entry.connect("activate", self.on_send_message)
         self.nicklist_data=Gtk.ListStore(str)
-        self.chat=ChatTextBuffer(darkmode, layout=self.widget.textview.create_pango_layout())
+        self.chat=ChatTextBuffer(config, darkmode, layout=self.widget.textview.create_pango_layout())
         self.widget.textview.set_buffer(self.chat)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
         styleContext=self.widget.get_style_context()
