@@ -144,11 +144,11 @@ class ChatTextBuffer(Gtk.TextBuffer):
             text=''.join(stripped_items)
             width= self.get_text_pixel_width(text, True if self.attr_tag["*"] in attr_list else False)
             indent_tag.props.indent=-width
-            indent_tag.props.left_margin=self.longest_prefix-width
+            indent_tag.props.left_margin=self.longest_prefix-width+self.config['look']['margin_size']
             if self.last_message_type != MessageType.TIME_STAMP and (msg_type==MessageType.CHAT_MESSAGE or msg_type!=self.last_message_type):
                 indent_tag.props.pixels_above_lines=10
         elif indent == "no_prefix":
-            indent_tag.props.left_margin=self.longest_prefix
+            indent_tag.props.left_margin=self.longest_prefix+self.config['look']['margin_size']
 
     def get_text_pixel_width(self, text, bold=False):
         self.layout.set_text(text,-1)
@@ -172,8 +172,9 @@ class ChatTextBuffer(Gtk.TextBuffer):
 
         
 class BufferWidget(Gtk.Box):
-    def __init__(self):
+    def __init__(self, config):
         Gtk.Box.__init__(self)
+        self.config=config
         self.set_orientation(Gtk.Orientation.VERTICAL)
         horizontal_box=Gtk.Box(Gtk.Orientation.HORIZONTAL)
         self.pack_start(horizontal_box,True,True,0)
@@ -198,6 +199,7 @@ class BufferWidget(Gtk.Box):
         self.textview.set_editable(False)
         self.textview.set_can_focus(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        self.textview.set_right_margin(self.config['look']['margin_size'])
         self.scrolledwindow.add(self.textview)
         horizontal_box.pack_start(self.scrolledwindow, True, True, 0)
         self.adjustment=self.textview.get_vadjustment()
@@ -321,7 +323,7 @@ class Buffer(GObject.GObject):
         self.config=config
         self.data=data
         self.nicklist={}
-        self.widget=BufferWidget()
+        self.widget=BufferWidget(self.config)
         self.widget.entry.connect("activate", self.on_send_message)
         self.nicklist_data=Gtk.ListStore(str)
         self.chat=ChatTextBuffer(config, darkmode, layout=self.widget.textview.create_pango_layout())
