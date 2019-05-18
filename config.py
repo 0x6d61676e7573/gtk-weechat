@@ -38,7 +38,7 @@ CONFIG_DEFAULT_OPTIONS = (('relay.server', ''),
                           ('relay.lines', str(CONFIG_DEFAULT_RELAY_LINES)),
                           ('look.debug', 'off'),
                           ('look.statusbar', 'off'),
-                          ('look.buffer_time_format', '%H:%M:%S'))
+                          ('look.buffer_time_format', '%H:%M'))
 
 # Default colors for WeeChat color options (option name, #rgb value)
 CONFIG_DEFAULT_COLOR_OPTIONS = (
