@@ -25,6 +25,8 @@ from enum import Enum
 import re
 import datetime
 
+url=re.compile(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
+
 class MessageType(Enum):
     SERVER_MESSAGE=0
     CHAT_MESSAGE=1
@@ -149,6 +151,26 @@ class ChatTextBuffer(Gtk.TextBuffer):
                 indent_tag.props.pixels_above_lines=10
         elif indent == "no_prefix":
             indent_tag.props.left_margin=self.longest_prefix+self.config['look']['margin_size']
+        if indent in ("no_prefix", "text"):
+            stripped_items=''.join(stripped_items)
+            for url_match in url.finditer(stripped_items):
+                span=url_match.span()
+                start=self.get_end_iter()
+                start.backward_chars(len(stripped_items)-span[0])
+                end=self.get_end_iter()
+                end.backward_chars(len(stripped_items)-span[1])
+                tag=self.create_tag(underline=Pango.Underline.SINGLE)
+                tag.connect("event", self.on_url_clicked,url_match[0])
+                self.apply_tag(tag, start, end)
+
+    def on_url_clicked(self, tag, source_object, event, text_iter, arg):
+        if not event.type==Gdk.EventType.BUTTON_PRESS:
+            return
+        if not event.button.button==1:
+            return
+        print(arg)
+        Gtk.show_uri_on_window(None,arg,Gdk.CURRENT_TIME)
+
 
     def get_text_pixel_width(self, text, bold=False):
         self.layout.set_text(text,-1)
