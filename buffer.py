@@ -250,6 +250,10 @@ class BufferWidget(Gtk.Box):
         horizontal_box.pack_start(sep, False, False, 0)
         horizontal_box.pack_start(scrolledwindow,False,False,0)
 
+        # Mouse cursors
+        self.pointer_cursor = Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "pointer")
+        self.text_cursor = Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "text")
+
     def on_event(self, source, event):
         """ Handler for mouse movement events. """
         if event.type != Gdk.EventType.MOTION_NOTIFY:
@@ -258,11 +262,9 @@ class BufferWidget(Gtk.Box):
         coords = self.textview.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
         text_iter = self.textview.get_iter_at_location(*coords)
         if text_iter[0] and text_iter[1].has_tag(self.url_tag):
-            cursor=Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "pointer")
-            win.set_cursor(cursor)
+            win.set_cursor(self.pointer_cursor)
         else:
-            cursor=Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "text")
-            win.set_cursor(cursor)
+            win.set_cursor(self.text_cursor)
 
     def on_key_press(self, source_widget, event):
         if event.keyval == Gdk.KEY_Tab:
