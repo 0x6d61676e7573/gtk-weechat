@@ -170,7 +170,6 @@ class ChatTextBuffer(Gtk.TextBuffer):
             return
         if not event.button.button==1:
             return
-        print(arg)
         Gtk.show_uri_on_window(None,arg,Gdk.CURRENT_TIME)
 
 
