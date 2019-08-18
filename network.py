@@ -124,6 +124,11 @@ class Network(GObject.GObject):
                 self.connection_status=ConnectionStatus.CONNECTION_LOST
                 self.emit("connectionChanged")
                 return
+            elif err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.BROKEN_PIPE):
+                print("Broken pipe, connection lost.")
+                self.connection_status=ConnectionStatus.CONNECTION_LOST
+                self.emit("connectionChanged")
+                return
             else:
                 raise
         if gbytes is None:
