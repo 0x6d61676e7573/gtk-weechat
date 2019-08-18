@@ -75,9 +75,9 @@ class ChatTextBuffer(Gtk.TextBuffer):
 
         if prefix is not None and prefix != self.last_prefix:
             if message_type==MessageType.SERVER_MESSAGE:
-                prefix=re.sub("-->", "\u27F6", prefix)
-                prefix=re.sub("<--", "\u27F5", prefix)
-                prefix=re.sub("--", "\u2014", prefix)
+                prefix=prefix.replace("-->", "\u27F6")
+                prefix=prefix.replace("<--", "\u27F5")
+                prefix=prefix.replace("--", "\u2014")
             self.last_prefix=prefix
             self._display_with_colors(prefix + " ", indent="prefix",msg_type=message_type)
             has_prefix=True
