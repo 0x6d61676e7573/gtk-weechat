@@ -55,6 +55,7 @@ class ChatTextBuffer(Gtk.TextBuffer):
         italic_tag=self.create_tag(style=Pango.Style.ITALIC)
         reverse_tag=self.create_tag() #reverse video is not implemented
         self.attr_tag={"*":bold_tag,"_":underline_tag,"/":italic_tag, "!":reverse_tag}
+        self.url_tag=self.create_tag(underline=Pango.Underline.SINGLE)
 
     def display(self, time, prefix, text, tags_array):
         """Adds text to the buffer."""
@@ -159,9 +160,10 @@ class ChatTextBuffer(Gtk.TextBuffer):
                 start.backward_chars(len(stripped_items)-span[0])
                 end=self.get_end_iter()
                 end.backward_chars(len(stripped_items)-span[1])
-                tag=self.create_tag(underline=Pango.Underline.SINGLE)
+                tag=self.create_tag()
                 tag.connect("event", self.on_url_clicked,url_match[0])
                 self.apply_tag(tag, start, end)
+                self.apply_tag(self.url_tag, start, end)
 
     def on_url_clicked(self, tag, source_object, event, text_iter, arg):
         if not event.type==Gdk.EventType.BUTTON_PRESS:
@@ -225,6 +227,7 @@ class BufferWidget(Gtk.Box):
         self.scrolledwindow.add(self.textview)
         horizontal_box.pack_start(self.scrolledwindow, True, True, 0)
         self.adjustment=self.textview.get_vadjustment()
+        self.textview.connect("event", self.on_event)
         
         # Entry widget
         self.entry=Gtk.Entry()
@@ -247,6 +250,20 @@ class BufferWidget(Gtk.Box):
         sep=Gtk.Separator()
         horizontal_box.pack_start(sep, False, False, 0)
         horizontal_box.pack_start(scrolledwindow,False,False,0)
+
+    def on_event(self, source, event):
+        """ Handler for mouse movement events. """
+        if event.type != Gdk.EventType.MOTION_NOTIFY:
+            return False
+        win=self.textview.get_window(Gtk.TextWindowType.TEXT)
+        coords = self.textview.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
+        text_iter = self.textview.get_iter_at_location(*coords)
+        if text_iter[0] and text_iter[1].has_tag(self.url_tag):
+            cursor=Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "pointer")
+            win.set_cursor(cursor)
+        else:
+            cursor=Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "text")
+            win.set_cursor(cursor)
 
     def on_key_press(self, source_widget, event):
         if event.keyval == Gdk.KEY_Tab:
@@ -351,6 +368,7 @@ class Buffer(GObject.GObject):
         self.chat=ChatTextBuffer(config, darkmode, layout=self.widget.textview.create_pango_layout())
         self.widget.textview.set_buffer(self.chat)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
+        self.widget.url_tag=self.chat.url_tag
         styleContext=self.widget.get_style_context()
         (color_is_defined,theme_fg_color)=styleContext.lookup_color("theme_fg_color") 
         default=theme_fg_color if color_is_defined else Gdk.RGBA(0,0,0,1)
