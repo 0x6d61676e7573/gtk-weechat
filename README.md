@@ -7,7 +7,7 @@ Dependencies:
 
 # TODO:
 High priority:
-- [ ] Make hyperlinks clickable.
+- [x] Make hyperlinks clickable.
 - [ ] Add a way to use dark color scheme without changing system color scheme
 - [ ] Make network connection aware of closed socket and try to reconnect
 
