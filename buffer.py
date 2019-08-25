@@ -147,11 +147,11 @@ class ChatTextBuffer(Gtk.TextBuffer):
             text=''.join(stripped_items)
             width= self.get_text_pixel_width(text, True if self.attr_tag["*"] in attr_list else False)
             indent_tag.props.indent=-width
-            indent_tag.props.left_margin=self.longest_prefix-width+self.config['look']['margin_size']
+            indent_tag.props.left_margin=self.longest_prefix-width+int(self.config['look']['margin_size'])
             if self.last_message_type != MessageType.TIME_STAMP and (msg_type==MessageType.CHAT_MESSAGE or msg_type!=self.last_message_type):
                 indent_tag.props.pixels_above_lines=10
         elif indent == "no_prefix":
-            indent_tag.props.left_margin=self.longest_prefix+self.config['look']['margin_size']
+            indent_tag.props.left_margin=self.longest_prefix+int(self.config['look']['margin_size'])
         if indent in ("no_prefix", "text"):
             stripped_items=''.join(stripped_items)
             for url_match in url.finditer(stripped_items):
@@ -222,7 +222,7 @@ class BufferWidget(Gtk.Box):
         self.textview.set_editable(False)
         self.textview.set_can_focus(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        self.textview.set_right_margin(self.config['look']['margin_size'])
+        self.textview.set_right_margin(int(self.config['look']['margin_size']))
         self.scrolledwindow.add(self.textview)
         horizontal_box.pack_start(self.scrolledwindow, True, True, 0)
         self.adjustment=self.textview.get_vadjustment()
