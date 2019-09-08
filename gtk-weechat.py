@@ -19,7 +19,7 @@
 #
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gio
+from gi.repository import Gtk, Gio, GLib
 from network import Network, ConnectionStatus
 import protocol
 from buffer import Buffer
@@ -157,6 +157,12 @@ class MainWindow(Gtk.ApplicationWindow):
         elif self.net.connection_status==ConnectionStatus.CONNECTION_LOST:
             self.menuitem_disconnect.set_sensitive(False)
             self.menuitem_connect.set_sensitive(True)
+        elif self.net.connection_status==ConnectionStatus.RECONNECTING:
+            self.menuitem_disconnect.set_sensitive(False)
+            self.menuitem_connect.set_sensitive(False)
+            print("Reconnecting in 5 seconds...")
+            GLib.timeout_add_seconds(
+                5,lambda: self.net.connect_weechat() and False)
 
     def on_connect_clicked(self, widget):
         """Callback function for when the connect button is clicked."""

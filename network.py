@@ -39,6 +39,7 @@ class ConnectionStatus(Enum):
     CONNECTING=2
     CONNECTED=3
     CONNECTION_LOST=4
+    RECONNECTING=5
 
 class Network(GObject.GObject):
     __gsignals__ = { "messageFromWeechat": (GObject.SIGNAL_RUN_FIRST,None,(GLib.Bytes,)),
@@ -81,8 +82,9 @@ class Network(GObject.GObject):
         if self.cancel_network_reads.is_cancelled:
             self.cancel_network_reads.reset()
         self.socketclient.connect_async(self.adr,None,self.connected_func,None)
-        self.connection_status=ConnectionStatus.CONNECTING
-        self.emit("connectionChanged")
+        if self.connection_status is not ConnectionStatus.RECONNECTING:
+            self.connection_status=ConnectionStatus.CONNECTING
+            self.emit("connectionChanged")
         return True
       
     def connected_func(self, source_object, res, *user_data):
@@ -91,7 +93,8 @@ class Network(GObject.GObject):
             self.socket=self.socketclient.connect_finish(res)
         except GLib.Error as err:
             print("Connection failed:\n{}".format(err.message))
-            self.connection_status=ConnectionStatus.NOT_CONNECTED
+            if self.connection_status is not ConnectionStatus.RECONNECTING:
+                self.connection_status=ConnectionStatus.NOT_CONNECTED
             self.emit("connectionChanged")
             return
         else:
@@ -126,7 +129,7 @@ class Network(GObject.GObject):
                 return
             elif err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.BROKEN_PIPE):
                 print("Broken pipe, connection lost.")
-                self.connection_status=ConnectionStatus.CONNECTION_LOST
+                self.connection_status=ConnectionStatus.RECONNECTING
                 self.emit("connectionChanged")
                 return
             else:
