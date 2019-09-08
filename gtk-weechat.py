@@ -44,7 +44,8 @@ class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, config, *args, **kwargs):
         Gtk.Window.__init__(self, *args, **kwargs)
         self.set_default_size(950,700)
-        
+        self.connect("delete-event", self.on_delete_event)
+
         # Check if theme name has "dark" in it
         theme=Gtk.Settings.get_default().props.gtk_theme_name
         self.darkmode= False if theme.lower().find('dark')==-1 else True
@@ -131,6 +132,21 @@ class MainWindow(Gtk.ApplicationWindow):
         else:
             connectionSettings.display()
 
+    def on_delete_event(self, source_object, event):
+        """Callback function to save buffer state when window is closed."""
+        self.save_expanded_buffers()
+
+    def expand_buffers(self):
+        """Check which nodes were expanded last time when state was saved, 
+           and expands them."""
+        for buf_ptr in state.get_expanded_nodes():
+            path=self.buffers.buffer_store.get_path_from_bufptr(buf_ptr)
+            self.buffers.tree.expand_row(path,False)
+
+    def save_expanded_buffers(self):
+        """Saves the list of expanded buffers."""
+        state.set_expanded_nodes(self.buffers.get_expanded_nodes())
+
     def on_settings_connect(self, source_object):
         if self.net.check_settings() is False:
             connectionSettings.display()
@@ -155,11 +171,13 @@ class MainWindow(Gtk.ApplicationWindow):
             self.menuitem_disconnect.set_sensitive(True)
             self.menuitem_connect.set_sensitive(False)
         elif self.net.connection_status==ConnectionStatus.CONNECTION_LOST:
+            self.save_expanded_buffers()
             self.menuitem_disconnect.set_sensitive(False)
             self.menuitem_connect.set_sensitive(True)
         elif self.net.connection_status==ConnectionStatus.RECONNECTING:
             self.menuitem_disconnect.set_sensitive(False)
             self.menuitem_connect.set_sensitive(False)
+            self.save_expanded_buffers()
             print("Reconnecting in 5 seconds...")
             GLib.timeout_add_seconds(
                 5,lambda: self.net.connect_weechat() and False)
@@ -233,6 +251,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 active_node=state.get_active_node()
                 if buf.pointer() == active_node:
                     self.buffers.show(buf.pointer())
+        self.expand_buffers()
 
     def _parse_line(self, message):
         """Parse a WeeChat message with a buffer line."""
@@ -406,7 +425,7 @@ class Application(Gtk.Application):
         action = Gio.SimpleAction.new("quit", None)
         action.connect("activate", self.on_quit)
         self.add_action(action)
-        
+
     def do_startup(self):
         Gtk.Application.do_startup(self)
         self.window=MainWindow(self.config, title="Gtk-Weechat", application=self)
@@ -421,6 +440,7 @@ class Application(Gtk.Application):
         self.window.present()
         
     def on_quit(self, action, param):
+        self.window.save_expanded_buffers()
         self.quit()
         
         

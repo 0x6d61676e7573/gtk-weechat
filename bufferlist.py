@@ -126,6 +126,13 @@ class BufferList(GObject.GObject):
     
     def __iter__(self):
         return iter(self.buffers)
+
+    def get_expanded_nodes(self):
+        """ Returns a list of all expanded root level nodes. """
+        return [node[2]
+                for (i, node)
+                in enumerate(self.buffer_store)
+                if self.tree.row_expanded(Gtk.TreePath([i]))]
     
     def append(self, buf):
         self.buffers.append(buf)
