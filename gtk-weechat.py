@@ -28,6 +28,7 @@ import copy
 from bufferlist import BufferList 
 from connection import ConnectionSettings
 import re
+from state import State
 
 FUN_MSG="\n\n\n\n\n\n\n\n\n\n\n\n"\
 " ______  _________ __ ___       __         ______________        _____ \n"\
@@ -229,6 +230,9 @@ class MainWindow(Gtk.ApplicationWindow):
                 buf = Buffer(self.config, item, darkmode=self.darkmode)
                 self.buffers.append(buf)
                 buf.connect("messageToWeechat", self.on_send_message)
+                active_node=state.get_active_node()
+                if buf.pointer() == active_node:
+                    self.buffers.show(buf.pointer())
 
     def _parse_line(self, message):
         """Parse a WeeChat message with a buffer line."""
@@ -371,6 +375,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def on_buffer_switched(self, source_object):
         """ Callback for when another buffer is switched to. """
+        state.set_active_node(self.buffers.active_buffer().pointer())
         self.update_headerbar()
     
     def update_headerbar(self):
@@ -422,5 +427,8 @@ class Application(Gtk.Application):
 # Start the application 
 config=config.read()
 connectionSettings=ConnectionSettings(config)
+state=State("data.pickle")
+state.load_from_file()
 app=Application(config)
 app.run()
+state.dump_to_file()
