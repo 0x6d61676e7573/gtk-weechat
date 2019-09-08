@@ -74,7 +74,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Add stack of buffers
         box_horizontal.pack_start(self.buffers.stack, True, True, 0)
-        
 
         # Set up a menu
         menubutton=Gtk.MenuButton()
