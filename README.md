@@ -9,7 +9,7 @@ Dependencies:
 High priority:
 - [x] Make hyperlinks clickable.
 - [ ] Add a way to use dark color scheme without changing system color scheme
-- [ ] Make network connection aware of closed socket and try to reconnect
+- [x] Make network connection aware of closed socket and try to reconnect
 
 Medium priority:
 - [ ] Make alt-left/right expand server list, alt-up/down skip non-expanded channels
