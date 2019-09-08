@@ -141,6 +141,8 @@ class BufferList(GObject.GObject):
         if match is not None:
             server=match.group(1)
             parent=self.get_parent(buf, server)
+        if buf.data.get('full_name').startswith("irc") is False:
+            buf.widget.textview.set_monospace(True)
         self.buffer_store.append(parent,(buf.get_name(),buf.colors_for_notify["default"], buf.pointer()))
         self.stack.add_named(buf.widget, buf.data["__path"][0])
         self.pointer_to_buffer_map[buf.pointer()]=buf
