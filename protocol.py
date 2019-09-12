@@ -196,7 +196,7 @@ class Protocol:
         value = self._obj_len_data(1)
         if value is None:
             return None
-        return int(str(value))
+        return int(value)
 
     def _obj_str(self):
         """Read a string in data (length on 4 bytes + content)."""
