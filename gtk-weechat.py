@@ -56,6 +56,7 @@ class MainWindow(Gtk.ApplicationWindow):
         # Set up a list of buffer objects, holding data for every buffer
         self.buffers=BufferList()
         self.buffers.connect("bufferSwitched", self.on_buffer_switched)
+        self.buffers.connect_after("bufferSwitched", self.after_buffer_switched)
         
         # Set up GTK box
         box_horizontal=Gtk.Box(Gtk.Orientation.HORIZONTAL,0)
@@ -131,6 +132,15 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.menuitem_disconnect.set_sensitive(True)
         else:
             connectionSettings.display()
+
+        #Sync our local hotlist with the weechat server
+        GLib.timeout_add_seconds(60, self.request_hotlist)
+
+    def request_hotlist(self):
+        """" Ask server to send a hotlist. """
+        if self.net.connection_status is ConnectionStatus.CONNECTED:
+            self.net.send_to_weechat("(hotlist) hdata hotlist:gui_hotlist(*)\n")
+        return True
 
     def on_delete_event(self, source_object, event):
         """Callback function to save buffer state when window is closed."""
@@ -237,6 +247,8 @@ class MainWindow(Gtk.ApplicationWindow):
             self.network.desync_weechat()
         elif message.msgid == '_upgrade_ended':
             self.network.sync_weechat()
+        elif message.msgid == 'hotlist':
+            self._parse_hotlist(message)
             
     def _parse_listbuffers(self, message):
         """Parse a WeeChat with list of buffers."""
@@ -252,6 +264,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 if buf.pointer() == active_node:
                     self.buffers.show(buf.pointer())
         self.expand_buffers()
+        self.request_hotlist()
 
     def _parse_line(self, message):
         """Parse a WeeChat message with a buffer line."""
@@ -392,10 +405,42 @@ class MainWindow(Gtk.ApplicationWindow):
                 elif message.msgid == '_buffer_closing':
                     self.buffers.remove(bufptr)
 
-    def on_buffer_switched(self, source_object):
-        """ Callback for when another buffer is switched to. """
-        state.set_active_node(self.buffers.active_buffer().pointer())
+    def _parse_hotlist(self, message):
+        """Parse a WeeChat hotlist."""
+        for buf in self.buffers:
+            buf.reset_notify_level()
+        for obj in message.objects:
+            if not obj.value['path']:
+                continue
+            if obj.objtype != 'hda' or obj.value['path'][-1] != 'hotlist':
+                continue
+            for item in obj.value['items']:
+                priority=item["priority"]
+                buf=self.buffers.get_buffer_from_pointer(item["buffer"])
+                if not buf:
+                    continue
+                if buf is self.buffers.active_buffer():
+                    continue
+                if priority == 0:
+                    buf.set_notify_level("low")
+                elif priority == 1:
+                    buf.set_notify_level("message")
+                elif priority == 2:
+                    buf.set_notify_level("mention")
+                elif priority == 3:
+                    buf.set_notify_level("mention")
+
+    def on_buffer_switched(self, source_object, bufptr):
+        """ Called right before another buffer is switched to. """
+        if self.buffers.active_buffer():
+            cmd="input {name} /buffer set hotlist -1\n".format(name=self.buffers.active_buffer().data["full_name"])
+            self.net.send_to_weechat(cmd)
+
+    def after_buffer_switched(self, source_object, bufptr):
+        """ Called right after another buffer is switched to. """
         self.update_headerbar()
+        if self.buffers.active_buffer():
+            state.set_active_node(self.buffers.active_buffer().pointer())
     
     def update_headerbar(self):
         """ Updates headerbar title and subtitle. """

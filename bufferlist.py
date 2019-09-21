@@ -82,7 +82,7 @@ class BufferList(GObject.GObject):
         and replaced by buffer pointers. """
         
     __gsignals__ = {
-        'bufferSwitched' : (GObject.SIGNAL_RUN_LAST, None, tuple())
+        'bufferSwitched' : (GObject.SIGNAL_RUN_LAST, None, (str,))
         }
     def __init__(self):
         GObject.GObject.__init__(self)
@@ -182,7 +182,11 @@ class BufferList(GObject.GObject):
             buf.widget.textview.emit("copy-clipboard")
     
     def show(self, bufptr):
-        """ Shows a buffer in the main window given its pointer. """
+        """ Initiates a buffer switch by emitting the bufferSwitched signal. """
+        self.emit("bufferSwitched", bufptr)
+
+    def do_bufferSwitched(self, bufptr):
+        """ Switch to that buffer which pointer is provided as argument. """
         active_buf=self.active_buffer()
         if active_buf is not None:
             active_buf.widget.active=False
@@ -196,7 +200,6 @@ class BufferList(GObject.GObject):
         if path.get_depth()>1:
             self.tree.expand_to_path(path)
         self.tree.get_selection().select_path(path)
-        self.emit("bufferSwitched")
         buf.widget.active=True
         buf.widget.scrollbottom()
         
