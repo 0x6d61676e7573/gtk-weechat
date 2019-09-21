@@ -151,7 +151,8 @@ class MainWindow(Gtk.ApplicationWindow):
            and expands them."""
         for buf_ptr in state.get_expanded_nodes():
             path=self.buffers.buffer_store.get_path_from_bufptr(buf_ptr)
-            self.buffers.tree.expand_row(path,False)
+            if path:
+                self.buffers.tree.expand_row(path,False)
 
     def save_expanded_buffers(self):
         """Saves the list of expanded buffers."""
