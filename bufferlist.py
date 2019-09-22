@@ -245,13 +245,35 @@ class BufferList(GObject.GObject):
         return self.pointer_to_buffer_map.get(pointer)
 
     def on_buffer_next(self, action, param):
+        """ Switches to the next, non-collapsed buffer. """
         current_bufptr=self.active_buffer().pointer()
-        tree_iter_next=self.buffer_store.get_next_tree_iter(current_bufptr) 
-        if tree_iter_next is not None:
+        tree_iter_next=self.buffer_store.get_next_tree_iter(current_bufptr)
+        while tree_iter_next:
+            path=self.buffer_store.get_path(tree_iter_next)
+            if path.get_depth() is 2:
+                path.up()
+                if self.tree.row_expanded(path):
+                    break;
+            else:
+                break
+            current_bufptr=self.buffer_store[tree_iter_next][2]
+            tree_iter_next=self.buffer_store.get_next_tree_iter(current_bufptr)
+        if tree_iter_next:
             self.show(self.buffer_store[tree_iter_next][2])
 
     def on_buffer_prev(self, action, param):
+        """ Switches to the previous, non-collapsed buffer. """
         current_bufptr=self.active_buffer().pointer()
-        tree_iter_prev=self.buffer_store.get_prev_tree_iter(current_bufptr) 
+        tree_iter_prev=self.buffer_store.get_prev_tree_iter(current_bufptr)
+        while tree_iter_prev:
+            path=self.buffer_store.get_path(tree_iter_prev)
+            if path.get_depth() is 2:
+                path.up()
+                if self.tree.row_expanded(path):
+                    break;
+            else:
+                break
+            current_bufptr=self.buffer_store[tree_iter_prev][2]
+            tree_iter_prev=self.buffer_store.get_prev_tree_iter(current_bufptr)
         if tree_iter_prev is not None:
             self.show(self.buffer_store[tree_iter_prev][2])

@@ -121,7 +121,13 @@ class MainWindow(Gtk.ApplicationWindow):
         action = Gio.SimpleAction.new("copy_to_clipboard", None)
         action.connect("activate", self.buffers.on_copy_to_clipboard)
         self.add_action(action)
-        
+        action = Gio.SimpleAction.new("buffer_expand", None)
+        action.connect("activate", self.on_buffer_expand)
+        self.add_action(action)
+        action = Gio.SimpleAction.new("buffer_collapse", None)
+        action.connect("activate", self.on_buffer_collapse)
+        self.add_action(action)
+
         # Autoconnect if necessary
         if self.net.check_settings() is True and \
                             self.config["relay"]["autoconnect"]=="on":
@@ -442,6 +448,25 @@ class MainWindow(Gtk.ApplicationWindow):
         self.update_headerbar()
         if self.buffers.active_buffer():
             state.set_active_node(self.buffers.active_buffer().pointer())
+
+    def on_buffer_expand(self, action, param):
+        """ Expand the currently selected server branch in buffer list. """
+        bufptr=self.buffers.active_buffer().pointer()
+        path=self.buffers.buffer_store.get_path_from_bufptr(bufptr)
+        if path:
+            self.buffers.tree.expand_row(path,False)
+
+    def on_buffer_collapse(self, action, param):
+        """ Collapse the currently selected server branch in buffer list. """
+        bufptr=self.buffers.active_buffer().pointer()
+        path=self.buffers.buffer_store.get_path_from_bufptr(bufptr)
+        if path:
+            if path.get_depth() is 1:
+                self.buffers.tree.collapse_row(path)
+            else:
+                path.up()
+                self.buffers.show(self.buffers.buffer_store[path][2])
+                self.buffers.tree.collapse_row(path)
     
     def update_headerbar(self):
         """ Updates headerbar title and subtitle. """
@@ -477,6 +502,8 @@ class Application(Gtk.Application):
         self.window=MainWindow(self.config, title="Gtk-Weechat", application=self)
         self.set_accels_for_action("win.buffer_next", ["<Control>Next", "<Alt>Down"])
         self.set_accels_for_action("win.buffer_prev", ["<Control>Prior", "<Alt>Up"])
+        self.set_accels_for_action("win.buffer_expand", ["<Alt>Right"])
+        self.set_accels_for_action("win.buffer_collapse", ["<Alt>Left"])
         self.set_accels_for_action("win.copy_to_clipboard", ["<Control>c"])
     
     def do_activate(self):

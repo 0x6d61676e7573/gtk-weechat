@@ -12,7 +12,7 @@ High priority:
 - [x] Make network connection aware of closed socket and try to reconnect
 
 Medium priority:
-- [ ] Make alt-left/right expand server list, alt-up/down skip non-expanded channels
+- [x] Make alt-left/right expand server list, alt-up/down skip non-expanded channels
 - [ ] Check if possible to make app aware of theme switch
 - [x] Check if possible to synch buffer notification levels with internal weechat 
 - [ ] Make connection dialog behave as expected on Enter press
