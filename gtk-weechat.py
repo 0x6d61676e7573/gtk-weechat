@@ -146,18 +146,24 @@ class MainWindow(Gtk.ApplicationWindow):
         else:
             connectionSettings.display()
 
+        # Enable darkmode if enabled before
+        if state.get_dark():
+            menuitem_darkmode.set_active(True)
+            
         #Sync our local hotlist with the weechat server
         GLib.timeout_add_seconds(60, self.request_hotlist)
 
     def on_darkmode_toggled(self, source_object):
         settings=Gtk.Settings().get_default()
-        if source_object.get_active():
+        dark=source_object.get_active()
+        if dark:
             settings.props.gtk_application_prefer_dark_theme=True
         else:
             settings.props.gtk_application_prefer_dark_theme=False
         for buf in self.buffers:
             buf.update_buffer_default_color()
             buf.emit("notifyLevelChanged")
+        state.set_dark(dark)
 
     def request_hotlist(self):
         """" Ask server to send a hotlist. """

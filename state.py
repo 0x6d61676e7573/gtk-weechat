@@ -5,7 +5,7 @@ class State():
     """Class to save and restore application state information."""
     def __init__(self, filename):
         self.filename=filename
-        self.data={"expanded":[], "active":""}
+        self.data={"expanded":[], "active":"", "dark":False}
 
     def dump_to_file(self):
         """Saves state information to file. """
@@ -27,6 +27,13 @@ class State():
     def set_active_node(self, node_ptr):
         """ Stores pointer to active node. """
         self.data["active"]=node_ptr
+
+    def set_dark(self, dark):
+        """ Stores state of darkmode being enabled or not. """
+        self.data["dark"]=dark
+
+    def get_dark(self):
+        return self.data.get("dark")
 
     def get_active_node(self):
         """ Returns pointer to last active buffer. """
