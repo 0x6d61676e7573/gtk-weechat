@@ -90,7 +90,12 @@ class Color():
     def _convert_weechat_color(self, color):
         try:
             index = int(color)
-            return '\x01(Fr%s)' % self.color_options[index]
+            if index is 13:          #channel name color
+                return '\x01(Fr$)'
+            elif index is 15:        #own nick color
+                return '\x01(Fr*)'
+            else:
+                return '\x01(Fr%s)' % self.color_options[index]
         except:  # noqa: E722
             print('Error decoding WeeChat color "%s"' % color)
             return ''
