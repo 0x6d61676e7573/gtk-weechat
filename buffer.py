@@ -370,15 +370,21 @@ class Buffer(GObject.GObject):
         self.widget.textview.set_buffer(self.chat)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
         self.widget.url_tag=self.chat.url_tag
-        styleContext=self.widget.get_style_context()
-        (color_is_defined,theme_fg_color)=styleContext.lookup_color("theme_fg_color") 
-        default=theme_fg_color if color_is_defined else Gdk.RGBA(0,0,0,1)
         green=Gdk.RGBA(0,0.7,0,1)
         orange=Gdk.RGBA(1,0.5,0.2,1)
         blue=Gdk.RGBA(0.2,0.2,0.7,1)
-        self.colors_for_notify={"default": default, "mention":green, "message":orange, "low":blue}
+        self.colors_for_notify={"default": self.get_theme_fg_color(), "mention":green, "message":orange, "low":blue}
         self.notify_values={"default": 0, "low": 1, "message":2, "mention":3}
         self.notify_level="default"
+
+    def get_theme_fg_color(self):
+        styleContext=self.widget.get_style_context()
+        (color_is_defined,theme_fg_color)=styleContext.lookup_color("theme_fg_color") 
+        return theme_fg_color if color_is_defined else Gdk.RGBA(0,0,0,1)
+
+    def update_buffer_default_color(self):
+        if self.colors_for_notify:
+            self.colors_for_notify["default"]=self.get_theme_fg_color()
 
     def nicklist_add_item(self, parent, group, prefix, name, visible):
         """Add a group/nick in nicklist."""

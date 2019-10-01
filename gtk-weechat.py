@@ -88,6 +88,13 @@ class MainWindow(Gtk.ApplicationWindow):
         self.headerbar.pack_end(menubutton)
         menu = Gtk.Menu()
         menu.set_halign(Gtk.Align(3))
+        menuitem_darkmode=Gtk.CheckMenuItem(label="Dark")
+        menuitem_darkmode.connect("toggled", self.on_darkmode_toggled)
+        menuitem_darkmode.show()
+        menu.append(menuitem_darkmode)
+        menu_sep=Gtk.SeparatorMenuItem()
+        menu_sep.show()
+        menu.append(menu_sep)
         self.menuitem_connect=Gtk.MenuItem(label="Connect")
         self.menuitem_connect.connect("activate", self.on_connect_clicked)
         self.menuitem_connect.show()
@@ -141,6 +148,16 @@ class MainWindow(Gtk.ApplicationWindow):
 
         #Sync our local hotlist with the weechat server
         GLib.timeout_add_seconds(60, self.request_hotlist)
+
+    def on_darkmode_toggled(self, source_object):
+        settings=Gtk.Settings().get_default()
+        if source_object.get_active():
+            settings.props.gtk_application_prefer_dark_theme=True
+        else:
+            settings.props.gtk_application_prefer_dark_theme=False
+        for buf in self.buffers:
+            buf.update_buffer_default_color()
+            buf.emit("notifyLevelChanged")
 
     def request_hotlist(self):
         """" Ask server to send a hotlist. """
