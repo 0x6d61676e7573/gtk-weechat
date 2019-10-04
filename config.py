@@ -24,7 +24,7 @@ import configparser
 import os
 
 #Let's save the config file in the script folder for now
-CONFIG_DIR =os.path.dirname(os.path.realpath(__file__)) 
+CONFIG_DIR = os.path.dirname(os.path.realpath(__file__))
 CONFIG_FILENAME = '%s/gtk-weechat.conf' % CONFIG_DIR
 
 CONFIG_DEFAULT_RELAY_LINES = 50
