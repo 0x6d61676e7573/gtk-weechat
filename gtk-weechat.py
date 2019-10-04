@@ -37,10 +37,6 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_default_size(950, 700)
         self.connect("delete-event", self.on_delete_event)
 
-        # Check if theme name has "dark" in it
-        theme = Gtk.Settings.get_default().props.gtk_theme_name
-        self.darkmode = False if theme.lower().find('dark')==-1 else True
-
         # Get the settings from the config file
         self.config = config
 
@@ -299,7 +295,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 continue
             self.buffers.clear()
             for item in obj.value['items']:
-                buf = Buffer(self.config, item, darkmode=self.darkmode)
+                buf = Buffer(self.config, item)
                 self.buffers.append(buf)
                 buf.connect("messageToWeechat", self.on_send_message)
                 active_node = STATE.get_active_node()
@@ -405,7 +401,7 @@ class MainWindow(Gtk.ApplicationWindow):
             if obj.objtype != 'hda' or obj.value['path'][-1] != 'buffer':
                 continue
             for item in obj.value['items']:
-                buf = Buffer(self.config, item, darkmode=self.darkmode)
+                buf = Buffer(self.config, item)
                 self.buffers.append(buf)
                 buf.connect("messageToWeechat", self.on_send_message)
                 self.buffers.show(buf.pointer())

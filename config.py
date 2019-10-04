@@ -88,55 +88,8 @@ CONFIG_DEFAULT_COLOR_OPTIONS = (
     ('emphasis', '#000000'),  # 42
     ('chat_day_change', '#000000'),  # 43
 )
-CONFIG_DEFAULT_COLOR_OPTIONS_DARKMODE = (
-    ('separator', '#000066'),  # 0
-    ('chat', '#FFFFFF'),  # 1
-    ('chat_time', '#999999'),  # 2
-    ('chat_time_delimiters', '#FFFFFF'),  # 3
-    ('chat_prefix_error', '#FF6633'),  # 4
-    ('chat_prefix_network', '#990099'),  # 5
-    ('chat_prefix_action', '#FFFFFF'),  # 6
-    ('chat_prefix_join', '#00CC00'),  # 7
-    ('chat_prefix_quit', '#CC0000'),  # 8
-    ('chat_prefix_more', '#CC00FF'),  # 9
-    ('chat_prefix_suffix', '#330099'),  # 10
-    ('chat_buffer', '#FFFFFF'),  # 11
-    ('chat_server', '#FFFFFF'),  # 12
-    ('chat_channel', '#FFFFFF'),  # 13
-    ('chat_nick', '#FFFFFF'),  # 14
-    ('chat_nick_self', '*#FFFFFF'),  # 15
-    ('chat_nick_other', '#FFFFFF'),  # 16
-    ('', '#FFFFFF'),  # 17 (nick1 -- obsolete)
-    ('', '#FFFFFF'),  # 18 (nick2 -- obsolete)
-    ('', '#FFFFFF'),  # 19 (nick3 -- obsolete)
-    ('', '#FFFFFF'),  # 20 (nick4 -- obsolete)
-    ('', '#FFFFFF'),  # 21 (nick5 -- obsolete)
-    ('', '#FFFFFF'),  # 22 (nick6 -- obsolete)
-    ('', '#FFFFFF'),  # 23 (nick7 -- obsolete)
-    ('', '#FFFFFF'),  # 24 (nick8 -- obsolete)
-    ('', '#FFFFFF'),  # 25 (nick9 -- obsolete)
-    ('', '#FFFFFF'),  # 26 (nick10 -- obsolete)
-    ('chat_host', '#666666'),  # 27
-    ('chat_delimiters', '#9999FF'),  # 28
-    ('chat_highlight', '#3399CC'),  # 29
-    ('chat_read_marker', '#FFFFFF'),  # 30
-    ('chat_text_found', '#FFFFFF'),  # 31
-    ('chat_value', '#FFFFFF'),  # 32
-    ('chat_prefix_buffer', '#FFFFFF'),  # 33
-    ('chat_tags', '#FFFFFF'),  # 34
-    ('chat_inactive_window', '#FFFFFF'),  # 35
-    ('chat_inactive_buffer', '#FFFFFF'),  # 36
-    ('chat_prefix_buffer_inactive_buffer', '#FFFFFF'),  # 37
-    ('chat_nick_offline', '#FFFFFF'),  # 38
-    ('chat_nick_offline_highlight', '#FFFFFF'),  # 39
-    ('chat_nick_prefix', '#FFFFFF'),  # 40
-    ('chat_nick_suffix', '#FFFFFF'),  # 41
-    ('emphasis', '#FFFFFF'),  # 42
-    ('chat_day_change', '#FFFFFF'),  # 43
-)
-config_color_options = []
-config_color_options_darkmode = []
 
+config_color_options = []
 
 def read():
     """Read config file."""
@@ -157,10 +110,6 @@ def read():
     for option in reversed(CONFIG_DEFAULT_COLOR_OPTIONS):
         if option[0] and not config.has_option(section, option[0]):
             config.set(section, option[0], option[1])
-    section = 'color_darkmode'
-    for option in reversed(CONFIG_DEFAULT_COLOR_OPTIONS_DARKMODE):
-        if option[0] and not config.has_option(section, option[0]):
-            config.set(section, option[0], option[1])
 
     # build list of color options
     config_color_options = []
@@ -169,14 +118,7 @@ def read():
             config_color_options.append(config.get('color', option[0]))
         else:
             config_color_options.append('#000000')
-    for option in CONFIG_DEFAULT_COLOR_OPTIONS_DARKMODE:
-        if option[0]:
-            config_color_options_darkmode.append(config.get('color_darkmode', option[0]))
-        else:
-            config_color_options_darkmode.append('#FFFFFF')
-
     return config
-
 
 def write(config):
     """Write config file."""
@@ -185,12 +127,7 @@ def write(config):
     with open(CONFIG_FILENAME, 'w') as cfg:
         config.write(cfg)
 
-
-def color_options(darkmode=False):
+def color_options():
     """Return color options."""
     global config_color_options
-    global config_color_options_darkmode
-    if darkmode:
-        return config_color_options_darkmode
-    else:
-        return config_color_options
+    return config_color_options
