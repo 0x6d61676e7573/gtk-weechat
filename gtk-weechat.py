@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
+import traceback
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
@@ -27,96 +28,86 @@ import config
 import copy
 from bufferlist import BufferList 
 from connection import ConnectionSettings
-import re
 from state import State
-
-FUN_MSG="\n\n\n\n\n\n\n\n\n\n\n\n"\
-" ______  _________ __ ___       __         ______________        _____ \n"\
-"__  ___\/__  __/ // /  _ |     / /___________  ____/__  /_______ __  /_\n"\
-"_  / ___ _  / /   _/ _ _ | /| / /_  _ \  _ \  /    __  __ \  __ `/  __/\n"\
-"__ |_/ /_  / / /\ \    _ |/ |/ / /  __/  __/ /___  _  / / / /_/ // /_  \n"\
-" _____/ /_/ /_/ /_/    ___/|__/  \___/\___/\____/  /_/ /_/\__,_/ \__/  \n"
-
-
 
 class MainWindow(Gtk.ApplicationWindow):
     """GTK Main Window."""
     def __init__(self, config, *args, **kwargs):
-        Gtk.Window.__init__(self, *args, **kwargs)
-        self.set_default_size(950,700)
+        Gtk.ApplicationWindow.__init__(self, *args, **kwargs)
+        self.set_default_size(950, 700)
         self.connect("delete-event", self.on_delete_event)
 
         # Check if theme name has "dark" in it
-        theme=Gtk.Settings.get_default().props.gtk_theme_name
-        self.darkmode= False if theme.lower().find('dark')==-1 else True
+        theme = Gtk.Settings.get_default().props.gtk_theme_name
+        self.darkmode = False if theme.lower().find('dark')==-1 else True
 
         # Get the settings from the config file
-        self.config=config
-        
+        self.config = config
+
         # Set up a list of buffer objects, holding data for every buffer
-        self.buffers=BufferList()
+        self.buffers = BufferList()
         self.buffers.connect("bufferSwitched", self.on_buffer_switched)
         self.buffers.connect_after("bufferSwitched", self.after_buffer_switched)
-        
+
         # Set up GTK box
-        box_horizontal=Gtk.Box(Gtk.Orientation.HORIZONTAL,0)
+        box_horizontal = Gtk.Box(Gtk.Orientation.HORIZONTAL,0)
         self.add(box_horizontal)
 
         # Set up a headerbar
-        self.headerbar=Gtk.HeaderBar()
+        self.headerbar = Gtk.HeaderBar()
         self.headerbar.set_has_subtitle(True)
         self.headerbar.set_title("Gtk-WeeChat")
         self.headerbar.set_subtitle("Not connected.")
         self.headerbar.set_show_close_button(True)
         self.set_titlebar(self.headerbar)
-        
+
         # Add widget showing list of buffers
         box_horizontal.pack_start(self.buffers.treescrolledwindow, False, False, 0)
-        sep=Gtk.Separator()
+        sep = Gtk.Separator()
         box_horizontal.pack_start(sep, False, False, 0)
 
         # Add stack of buffers
         box_horizontal.pack_start(self.buffers.stack, True, True, 0)
 
         # Set up a menu
-        menubutton=Gtk.MenuButton()
-        icon=Gio.ThemedIcon(name="open-menu-symbolic")
-        image=Gtk.Image.new_from_gicon(icon,Gtk.IconSize.BUTTON)
+        menubutton = Gtk.MenuButton()
+        icon = Gio.ThemedIcon(name="open-menu-symbolic")
+        image = Gtk.Image.new_from_gicon(icon,Gtk.IconSize.BUTTON)
         menubutton.get_child().destroy()
         menubutton.add(image)
         menubutton.show_all()
         self.headerbar.pack_end(menubutton)
         menu = Gtk.Menu()
         menu.set_halign(Gtk.Align(3))
-        menuitem_darkmode=Gtk.CheckMenuItem(label="Dark")
+        menuitem_darkmode = Gtk.CheckMenuItem(label="Dark")
         menuitem_darkmode.connect("toggled", self.on_darkmode_toggled)
         menuitem_darkmode.show()
         menu.append(menuitem_darkmode)
-        menu_sep=Gtk.SeparatorMenuItem()
+        menu_sep = Gtk.SeparatorMenuItem()
         menu_sep.show()
         menu.append(menu_sep)
-        self.menuitem_connect=Gtk.MenuItem(label="Connect")
+        self.menuitem_connect = Gtk.MenuItem(label="Connect")
         self.menuitem_connect.connect("activate", self.on_connect_clicked)
         self.menuitem_connect.show()
         menu.append(self.menuitem_connect)
-        self.menuitem_disconnect=Gtk.MenuItem(label="Disconnect")
+        self.menuitem_disconnect = Gtk.MenuItem(label="Disconnect")
         self.menuitem_disconnect.connect("activate", self.on_disconnect_clicked)
         self.menuitem_disconnect.set_sensitive(False)
         self.menuitem_disconnect.show()
         menu.append(self.menuitem_disconnect)
-        menuitem_quit=Gtk.MenuItem(label="Quit")
+        menuitem_quit = Gtk.MenuItem(label="Quit")
         menuitem_quit.set_action_name("app.quit")
         menuitem_quit.show()
         menu.append(menuitem_quit)
         menubutton.set_popup(menu)
 
         # Set up the network module
-        self.net=Network(self.config)
-        self.net.connect("messageFromWeechat",self._network_weechat_msg)
+        self.net = Network(self.config)
+        self.net.connect("messageFromWeechat", self._network_weechat_msg)
         self.net.connect("connectionChanged", self._connection_changed)
-        
+
         # Connect to connection settings signals
-        connectionSettings.connect("connect", self.on_settings_connect)
+        CONNECTION_SETTINGS.connect("connect", self.on_settings_connect)
 
         # Set up actions
         action = Gio.SimpleAction.new("buffer_next", None)
@@ -137,44 +128,48 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Autoconnect if necessary
         if self.net.check_settings() is True and \
-                            self.config["relay"]["autoconnect"]=="on":
+                            self.config["relay"]["autoconnect"] == "on":
             if self.net.connect_weechat() is False:
                 print("Failed to connect.")
             else:
                 self.menuitem_connect.set_sensitive(False)
                 self.menuitem_disconnect.set_sensitive(True)
         else:
-            connectionSettings.display()
+            CONNECTION_SETTINGS.display()
 
         # Enable darkmode if enabled before
-        self.dark_fallback_provider=Gtk.CssProvider()
+        self.dark_fallback_provider = Gtk.CssProvider()
         self.dark_fallback_provider.load_from_path("dark_fallback.css")
-        if state.get_dark():
+        if STATE.get_dark():
             menuitem_darkmode.set_active(True)
-            
+
         #Sync our local hotlist with the weechat server
         GLib.timeout_add_seconds(60, self.request_hotlist)
 
 
     def on_darkmode_toggled(self, source_object):
-        settings=Gtk.Settings().get_default()
-        dark=source_object.get_active()
+        """Callback for when the menubutton Dark is toggled. """
+        settings = Gtk.Settings().get_default()
+        dark = source_object.get_active()
         if settings.props.gtk_theme_name == "Adwaita":
             if dark:
-                settings.props.gtk_application_prefer_dark_theme=True
+                settings.props.gtk_application_prefer_dark_theme = True
             else:
-                settings.props.gtk_application_prefer_dark_theme=False
+                settings.props.gtk_application_prefer_dark_theme = False
         else:
-            style_context=self.get_style_context()
-            screen=Gdk.Screen().get_default()
+            #Non-standard theme, use fallback style provider
+            style_context = self.get_style_context()
+            screen = Gdk.Screen().get_default()
             if dark:
-                style_context.add_provider_for_screen(screen, self.dark_fallback_provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+                style_context.add_provider_for_screen(
+                    screen, self.dark_fallback_provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
             else:
-                style_context.remove_provider_for_screen(screen, self.dark_fallback_provider)
+                style_context.remove_provider_for_screen(
+                    screen, self.dark_fallback_provider)
         for buf in self.buffers:
             buf.update_buffer_default_color()
             buf.emit("notifyLevelChanged")
-        state.set_dark(dark)
+        STATE.set_dark(dark)
 
     def request_hotlist(self):
         """" Ask server to send a hotlist. """
@@ -182,88 +177,94 @@ class MainWindow(Gtk.ApplicationWindow):
             self.net.send_to_weechat("(hotlist) hdata hotlist:gui_hotlist(*)\n")
         return True
 
-    def on_delete_event(self, source_object, event):
+    def on_delete_event(self, *args):
         """Callback function to save buffer state when window is closed."""
         self.save_expanded_buffers()
 
     def expand_buffers(self):
-        """Check which nodes were expanded last time when state was saved, 
-           and expands them."""
-        for buf_ptr in state.get_expanded_nodes():
-            path=self.buffers.buffer_store.get_path_from_bufptr(buf_ptr)
+        """Check which nodes were expanded last time when state was saved,
+        and expands them.
+        """
+        for buf_ptr in STATE.get_expanded_nodes():
+            path = self.buffers.buffer_store.get_path_from_bufptr(buf_ptr)
             if path:
-                self.buffers.tree.expand_row(path,False)
+                self.buffers.tree.expand_row(path, False)
 
     def save_expanded_buffers(self):
         """Saves the list of expanded buffers."""
-        state.set_expanded_nodes(self.buffers.get_expanded_nodes())
+        STATE.set_expanded_nodes(self.buffers.get_expanded_nodes())
 
-    def on_settings_connect(self, source_object):
+    def on_settings_connect(self, *args):
+        """Callback for the menubutton connect."""
         if self.net.check_settings() is False:
             connectionSettings.display()
             return
         if self.net.connection_status in (ConnectionStatus.NOT_CONNECTED,
-                                            ConnectionStatus.CONNECTION_LOST):
+                                          ConnectionStatus.CONNECTION_LOST):
             self.net.connect_weechat()
         elif self.net.connection_status in (ConnectionStatus.CONNECTED,
-                                                ConnectionStatus.CONNECTING):
+                                            ConnectionStatus.CONNECTING):
             self.net.disconnect_weechat()
             self.net.connect_weechat()
 
-    def _connection_changed(self, source_object):
+    def _connection_changed(self, *args):
+        """Callback for when the network module reports a changed state."""
         self.update_headerbar()
-        if self.net.connection_status==ConnectionStatus.NOT_CONNECTED:
+        if self.net.connection_status == ConnectionStatus.NOT_CONNECTED:
             self.menuitem_disconnect.set_sensitive(False)
             self.menuitem_connect.set_sensitive(True)
-        elif self.net.connection_status==ConnectionStatus.CONNECTING:
+        elif self.net.connection_status == ConnectionStatus.CONNECTING:
             self.menuitem_disconnect.set_sensitive(True)
             self.menuitem_connect.set_sensitive(False)
-        elif self.net.connection_status==ConnectionStatus.CONNECTED:
+        elif self.net.connection_status == ConnectionStatus.CONNECTED:
             self.menuitem_disconnect.set_sensitive(True)
             self.menuitem_connect.set_sensitive(False)
-        elif self.net.connection_status==ConnectionStatus.CONNECTION_LOST:
+        elif self.net.connection_status == ConnectionStatus.CONNECTION_LOST:
             self.save_expanded_buffers()
             self.menuitem_disconnect.set_sensitive(False)
             self.menuitem_connect.set_sensitive(True)
-        elif self.net.connection_status==ConnectionStatus.RECONNECTING:
+        elif self.net.connection_status == ConnectionStatus.RECONNECTING:
             self.menuitem_disconnect.set_sensitive(False)
             self.menuitem_connect.set_sensitive(False)
             self.save_expanded_buffers()
             print("Reconnecting in 5 seconds...")
+            #Lambda function makes sure we only connect once
             GLib.timeout_add_seconds(
-                5,lambda: self.net.connect_weechat() and False)
+                5, lambda: self.net.connect_weechat() and False)
 
-    def on_connect_clicked(self, widget):
+    def on_connect_clicked(self, *args):
         """Callback function for when the connect button is clicked."""
         connectionSettings.display()
-        
-    def on_disconnect_clicked(self, widget):
+
+    def on_disconnect_clicked(self, *args):
         """Callback function for when the disconnect button is clicked."""
         print("Disonnecting")
         self.net.disconnect_weechat()
         self.buffers.clear()
         self.update_headerbar()
-        
+
     def on_send_message(self, source_object, entry):
         """ Callback for when enter is pressed in entry widget """
         if self.net.connection_status != ConnectionStatus.CONNECTED:
             return
-        text=copy.deepcopy(entry.get_text()) #returned string can not be stored        
-        full_name=source_object.data["full_name"]
+        text = copy.deepcopy(entry.get_text()) #returned string can not be stored
+        full_name = source_object.data["full_name"]
         message = 'input %s %s\n' % (full_name, text)
         self.net.send_to_weechat(message)
-        entry.get_buffer().delete_text(0,-1)
-            
+        entry.get_buffer().delete_text(0, -1)
+
     def _network_weechat_msg(self, source_object, message):
         """Called when a message is received from WeeChat."""
+        #pylint: disable=bare-except
         try:
             proto = protocol.Protocol()
             if len(message.get_data()) >= 5:
                 decoded_message = proto.decode(message.get_data())
                 self.parse_message(decoded_message)
             else:
-                print("Error, length of received message is {} bytes.".format(len(message.get_data())))
-        except:  # noqa: E722
+                print("Error, length of received message is {} bytes.".format(
+                    len(message.get_data())))
+        except:
             print('Error while decoding message from WeeChat:\n%s'
                   % traceback.format_exc())
             self.net.disconnect_weechat()
@@ -271,7 +272,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def parse_message(self, message):
         """Parse a WeeChat message."""
         if message.msgid.startswith('debug'):
-            self.debug_display(0, '', '(debug message, ignored)')
+            pass
         elif message.msgid == 'listbuffers':
             self._parse_listbuffers(message)
         elif message.msgid in ('listlines', '_buffer_line_added'):
@@ -285,12 +286,12 @@ class MainWindow(Gtk.ApplicationWindow):
         elif message.msgid.startswith('_buffer_'):
             self._parse_buffer(message)
         elif message.msgid == '_upgrade':
-            self.network.desync_weechat()
+            self.net.desync_weechat()
         elif message.msgid == '_upgrade_ended':
-            self.network.sync_weechat()
+            self.net.sync_weechat()
         elif message.msgid == 'hotlist':
             self._parse_hotlist(message)
-            
+
     def _parse_listbuffers(self, message):
         """Parse a WeeChat with list of buffers."""
         for obj in message.objects:
@@ -301,7 +302,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 buf = Buffer(self.config, item, darkmode=self.darkmode)
                 self.buffers.append(buf)
                 buf.connect("messageToWeechat", self.on_send_message)
-                active_node=state.get_active_node()
+                active_node = STATE.get_active_node()
                 if buf.pointer() == active_node:
                     self.buffers.show(buf.pointer())
         self.expand_buffers()
@@ -314,7 +315,7 @@ class MainWindow(Gtk.ApplicationWindow):
             if obj.objtype != 'hda' or obj.value['path'][-1] != 'line_data':
                 continue
             for item in obj.value['items']:
-                notify_level="default"
+                notify_level = "default"
                 if message.msgid == 'listlines':
                     ptrbuf = item['__path'][0]
                 else:
@@ -323,11 +324,11 @@ class MainWindow(Gtk.ApplicationWindow):
                             ptrbuf != self.buffers.active_buffer().pointer() and \
                             message.msgid != 'listlines':
                     if item["highlight"] or "notify_private" in item["tags_array"]:
-                        notify_level="mention"
+                        notify_level = "mention"
                     elif "notify_message" in item["tags_array"]:
-                        notify_level="message"
+                        notify_level = "message"
                     else:
-                        notify_level="low"
+                        notify_level = "low"
                 buf = self.buffers.get_buffer_from_pointer(ptrbuf)
                 if buf:
                     lines.append(
@@ -354,8 +355,8 @@ class MainWindow(Gtk.ApplicationWindow):
                 continue
             group = '__root'
             for item in obj.value['items']:
-                bufptr=item['__path'][0]
-                buf=self.buffers.get_buffer_from_pointer(bufptr)
+                bufptr = item['__path'][0]
+                buf = self.buffers.get_buffer_from_pointer(bufptr)
                 if buf is not None:
                     if not buf in buffer_refresh:
                         buf.nicklist = {}
@@ -367,7 +368,7 @@ class MainWindow(Gtk.ApplicationWindow):
                         item['visible'])
         for buf in buffer_refresh:
             buf.nicklist_refresh()
-            
+
     def _parse_nicklist_diff(self, message):
         """Parse a WeeChat message with a buffer nicklist diff."""
         buffer_refresh = set()
@@ -377,8 +378,8 @@ class MainWindow(Gtk.ApplicationWindow):
                 continue
             group = '__root'
             for item in obj.value['items']:
-                bufptr=item['__path'][0]
-                buf=self.buffers.get_buffer_from_pointer(bufptr)
+                bufptr = item['__path'][0]
+                buf = self.buffers.get_buffer_from_pointer(bufptr)
                 if buf is None:
                     continue
                 buffer_refresh.add(buf)
@@ -397,7 +398,7 @@ class MainWindow(Gtk.ApplicationWindow):
                         item['visible'])
         for buf in buffer_refresh:
             buf.nicklist_refresh()
-            
+
     def _parse_buffer_opened(self, message):
         """Parse a WeeChat message with a new buffer (opened)."""
         for obj in message.objects:
@@ -419,8 +420,8 @@ class MainWindow(Gtk.ApplicationWindow):
             if obj.objtype != 'hda' or obj.value['path'][-1] != 'buffer':
                 continue
             for item in obj.value['items']:
-                bufptr=item['__path'][0]
-                buf=self.buffers.get_buffer_from_pointer(bufptr)
+                bufptr = item['__path'][0]
+                buf = self.buffers.get_buffer_from_pointer(bufptr)
                 if buf is None:
                     continue
                 if message.msgid == '_buffer_type_changed':
@@ -456,8 +457,8 @@ class MainWindow(Gtk.ApplicationWindow):
             if obj.objtype != 'hda' or obj.value['path'][-1] != 'hotlist':
                 continue
             for item in obj.value['items']:
-                priority=item["priority"]
-                buf=self.buffers.get_buffer_from_pointer(item["buffer"])
+                priority = item["priority"]
+                buf = self.buffers.get_buffer_from_pointer(item["buffer"])
                 if not buf:
                     continue
                 if buf is self.buffers.active_buffer():
@@ -474,88 +475,91 @@ class MainWindow(Gtk.ApplicationWindow):
     def on_buffer_switched(self, source_object, bufptr):
         """ Called right before another buffer is switched to. """
         if self.buffers.active_buffer():
-            cmd="input {name} /buffer set hotlist -1\n".format(name=self.buffers.active_buffer().data["full_name"])
+            cmd = "input {name} /buffer set hotlist -1\n".format(
+                name=self.buffers.active_buffer().data["full_name"])
             self.net.send_to_weechat(cmd)
 
     def after_buffer_switched(self, source_object, bufptr):
         """ Called right after another buffer is switched to. """
         self.update_headerbar()
         if self.buffers.active_buffer():
-            state.set_active_node(self.buffers.active_buffer().pointer())
+            STATE.set_active_node(self.buffers.active_buffer().pointer())
 
-    def on_buffer_expand(self, action, param):
+    def on_buffer_expand(self, *args):
         """ Expand the currently selected server branch in buffer list. """
-        bufptr=self.buffers.active_buffer().pointer()
-        path=self.buffers.buffer_store.get_path_from_bufptr(bufptr)
+        bufptr = self.buffers.active_buffer().pointer()
+        path = self.buffers.buffer_store.get_path_from_bufptr(bufptr)
         if path:
-            self.buffers.tree.expand_row(path,False)
+            self.buffers.tree.expand_row(path, False)
 
-    def on_buffer_collapse(self, action, param):
+    def on_buffer_collapse(self, *args):
         """ Collapse the currently selected server branch in buffer list. """
-        bufptr=self.buffers.active_buffer().pointer()
-        path=self.buffers.buffer_store.get_path_from_bufptr(bufptr)
+        bufptr = self.buffers.active_buffer().pointer()
+        path = self.buffers.buffer_store.get_path_from_bufptr(bufptr)
         if path:
-            if path.get_depth() is 1:
+            if path.get_depth() == 1:
                 self.buffers.tree.collapse_row(path)
             else:
                 path.up()
                 self.buffers.show(self.buffers.buffer_store[path][2])
                 self.buffers.tree.collapse_row(path)
-    
+
     def update_headerbar(self):
         """ Updates headerbar title and subtitle. """
-        if self.net.connection_status==ConnectionStatus.CONNECTED:
+        if self.net.connection_status == ConnectionStatus.CONNECTED:
             if self.buffers.active_buffer() is not None: 
                 self.headerbar.set_title(self.buffers.get_title())
                 self.headerbar.set_subtitle(self.buffers.get_subtitle())
                 return
             else:
                 self.headerbar.set_subtitle("Connected")
-        elif self.net.connection_status==ConnectionStatus.NOT_CONNECTED:
+        elif self.net.connection_status == ConnectionStatus.NOT_CONNECTED:
             self.headerbar.set_subtitle("Not connected")
-        elif self.net.connection_status==ConnectionStatus.CONNECTING:
+        elif self.net.connection_status == ConnectionStatus.CONNECTING:
             self.headerbar.set_subtitle("Connecting...")
-        elif self.net.connection_status==ConnectionStatus.CONNECTION_LOST:
+        elif self.net.connection_status == ConnectionStatus.CONNECTION_LOST:
             self.headerbar.set_subtitle("Connection lost")
         self.headerbar.set_title("Gtk-WeeChat")
-        
+
 
 class Application(Gtk.Application):
+    """Gtk Application."""
     def __init__(self, config):
-        Gtk.Application.__init__(self, 
-                application_id="com.github._x67616d6e7573.gtk_weechat",
-                flags=Gio.ApplicationFlags.FLAGS_NONE)
-        self.window=None
-        self.config=config
+        Gtk.Application.__init__(
+            self, application_id="com.github._x67616d6e7573.gtk_weechat",
+            flags=Gio.ApplicationFlags.FLAGS_NONE)
+        self.window = None
+        self.config = config
         action = Gio.SimpleAction.new("quit", None)
         action.connect("activate", self.on_quit)
         self.add_action(action)
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
-        self.window=MainWindow(self.config, title="Gtk-Weechat", application=self)
+        self.window = MainWindow(self.config, title="Gtk-Weechat", application=self)
         self.set_accels_for_action("win.buffer_next", ["<Control>Next", "<Alt>Down"])
         self.set_accels_for_action("win.buffer_prev", ["<Control>Prior", "<Alt>Up"])
         self.set_accels_for_action("win.buffer_expand", ["<Alt>Right"])
         self.set_accels_for_action("win.buffer_collapse", ["<Alt>Left"])
         self.set_accels_for_action("win.copy_to_clipboard", ["<Control>c"])
-    
+
     def do_activate(self):
         if not self.window:
-            self.window=MainWindow(self.config, title="Gtk-Weechat", application=self)
+            self.window = MainWindow(self.config, title="Gtk-Weechat", application=self)
         self.window.show_all()
         self.window.present()
-        
-    def on_quit(self, action, param):
+
+    def on_quit(self, *args):
+        """Callback for the quit action."""
         self.window.save_expanded_buffers()
         self.quit()
-        
-        
-# Start the application 
-config=config.read()
-connectionSettings=ConnectionSettings(config)
-state=State("data.pickle")
-state.load_from_file()
-app=Application(config)
-app.run()
-state.dump_to_file()
+
+
+# Start the application
+CONFIG = config.read()
+CONNECTION_SETTINGS = ConnectionSettings(config)
+STATE = State("data.pickle")
+STATE.load_from_file()
+APP = Application(CONFIG)
+APP.run()
+STATE.dump_to_file()
