@@ -19,7 +19,7 @@
 #
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gio, GLib
+from gi.repository import Gtk, Gio, GLib, Gdk
 from network import Network, ConnectionStatus
 import protocol
 from buffer import Buffer
@@ -147,19 +147,30 @@ class MainWindow(Gtk.ApplicationWindow):
             connectionSettings.display()
 
         # Enable darkmode if enabled before
+        self.dark_fallback_provider=Gtk.CssProvider()
+        self.dark_fallback_provider.load_from_path("dark_fallback.css")
         if state.get_dark():
             menuitem_darkmode.set_active(True)
             
         #Sync our local hotlist with the weechat server
         GLib.timeout_add_seconds(60, self.request_hotlist)
 
+
     def on_darkmode_toggled(self, source_object):
         settings=Gtk.Settings().get_default()
         dark=source_object.get_active()
-        if dark:
-            settings.props.gtk_application_prefer_dark_theme=True
+        if settings.props.gtk_theme_name == "Adwaita":
+            if dark:
+                settings.props.gtk_application_prefer_dark_theme=True
+            else:
+                settings.props.gtk_application_prefer_dark_theme=False
         else:
-            settings.props.gtk_application_prefer_dark_theme=False
+            style_context=self.get_style_context()
+            screen=Gdk.Screen().get_default()
+            if dark:
+                style_context.add_provider_for_screen(screen, self.dark_fallback_provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+            else:
+                style_context.remove_provider_for_screen(screen, self.dark_fallback_provider)
         for buf in self.buffers:
             buf.update_buffer_default_color()
             buf.emit("notifyLevelChanged")
