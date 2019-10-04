@@ -17,6 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
+
+# pylint: ignored-argument-names=args|kwargs
+
 import os
 import traceback
 import gi
@@ -196,7 +199,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def on_settings_connect(self, *args):
         """Callback for the menubutton connect."""
         if self.net.check_settings() is False:
-            connectionSettings.display()
+            CONNECTION_SETTINGS.display()
             return
         if self.net.connection_status in (ConnectionStatus.NOT_CONNECTED,
                                           ConnectionStatus.CONNECTION_LOST):
@@ -233,7 +236,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def on_connect_clicked(self, *args):
         """Callback function for when the connect button is clicked."""
-        connectionSettings.display()
+        CONNECTION_SETTINGS.display()
 
     def on_disconnect_clicked(self, *args):
         """Callback function for when the disconnect button is clicked."""
