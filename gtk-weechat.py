@@ -28,7 +28,7 @@ import protocol
 from buffer import Buffer
 import config
 import copy
-from bufferlist import BufferList 
+from bufferlist import BufferList
 from connection import ConnectionSettings
 from state import State
 
@@ -442,8 +442,6 @@ class MainWindow(Gtk.ApplicationWindow):
                 elif message.msgid.startswith('_buffer_localvar_'):
                     buf.data['local_variables'] = \
                         item['local_variables']
-                    pass #TODO 
-                    #self.buffers[index].update_prompt()
                 elif message.msgid == '_buffer_closing':
                     self.buffers.remove(bufptr)
 
