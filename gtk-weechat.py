@@ -50,7 +50,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.buffers.connect_after("bufferSwitched", self.after_buffer_switched)
 
         # Set up GTK box
-        box_horizontal = Gtk.Box(Gtk.Orientation.HORIZONTAL,0)
+        box_horizontal = Gtk.Box(Gtk.Orientation.HORIZONTAL, 0)
         self.add(box_horizontal)
 
         # Set up a headerbar
@@ -72,7 +72,7 @@ class MainWindow(Gtk.ApplicationWindow):
         # Set up a menu
         menubutton = Gtk.MenuButton()
         icon = Gio.ThemedIcon(name="open-menu-symbolic")
-        image = Gtk.Image.new_from_gicon(icon,Gtk.IconSize.BUTTON)
+        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.BUTTON)
         menubutton.get_child().destroy()
         menubutton.add(image)
         menubutton.show_all()
