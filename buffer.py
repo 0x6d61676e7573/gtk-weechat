@@ -34,7 +34,7 @@ class MessageType(Enum):
 
 class ChatTextBuffer(Gtk.TextBuffer):
     """Textbuffer to store buffer text."""
-    def __init__(self, config, darkmode=False, layout=None):
+    def __init__(self, config, layout=None):
         Gtk.TextBuffer.__init__(self)
         self.config=config
         self.layout=layout
@@ -46,7 +46,7 @@ class ChatTextBuffer(Gtk.TextBuffer):
         
         #We need the color class that convert formatting codes in network 
         #data to codes that the parser functions in this class can handle
-        self._color = color.Color(config_module.color_options(darkmode), False)
+        self._color = color.Color(config_module.color_options(), False)
         
         #Text tags used for formatting
         self.time_tag=self.create_tag(justification=Gtk.Justification.RIGHT, weight=Pango.Weight.BOLD)
@@ -358,7 +358,7 @@ class Buffer(GObject.GObject):
         'notifyLevelChanged' : (GObject.SIGNAL_RUN_LAST, None,
                                 tuple())
         }
-    def __init__(self, config, data={}, darkmode=False):
+    def __init__(self, config, data={}):
         GObject.GObject.__init__(self)
         self.config=config
         self.data=data
@@ -366,7 +366,7 @@ class Buffer(GObject.GObject):
         self.widget=BufferWidget(self.config)
         self.widget.entry.connect("activate", self.on_send_message)
         self.nicklist_data=Gtk.ListStore(str)
-        self.chat=ChatTextBuffer(config, darkmode, layout=self.widget.textview.create_pango_layout())
+        self.chat=ChatTextBuffer(config, layout=self.widget.textview.create_pango_layout())
         self.widget.textview.set_buffer(self.chat)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
         self.widget.url_tag=self.chat.url_tag

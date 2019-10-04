@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
+import os
 import traceback
 import gi
 gi.require_version('Gtk', '3.0')
@@ -29,6 +30,8 @@ import copy
 from bufferlist import BufferList 
 from connection import ConnectionSettings
 from state import State
+
+CONFIG_DIR = os.path.dirname(os.path.realpath(__file__))
 
 class MainWindow(Gtk.ApplicationWindow):
     """GTK Main Window."""
@@ -135,7 +138,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Enable darkmode if enabled before
         self.dark_fallback_provider = Gtk.CssProvider()
-        self.dark_fallback_provider.load_from_path("dark_fallback.css")
+        self.dark_fallback_provider.load_from_path("{}/dark_fallback.css".format(CONFIG_DIR))
         if STATE.get_dark():
             menuitem_darkmode.set_active(True)
 
