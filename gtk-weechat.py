@@ -18,8 +18,6 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# pylint: ignored-argument-names=args|kwargs
-
 import os
 import traceback
 import gi
@@ -503,18 +501,19 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.buffers.tree.collapse_row(path)
             else:
                 path.up()
+                #pylint: disable=unsubscriptable-object
+                #buffer_store is a Gtk.TreeStore derived class
                 self.buffers.show(self.buffers.buffer_store[path][2])
                 self.buffers.tree.collapse_row(path)
 
     def update_headerbar(self):
         """ Updates headerbar title and subtitle. """
         if self.net.connection_status == ConnectionStatus.CONNECTED:
-            if self.buffers.active_buffer() is not None: 
+            if self.buffers.active_buffer() is not None:
                 self.headerbar.set_title(self.buffers.get_title())
                 self.headerbar.set_subtitle(self.buffers.get_subtitle())
                 return
-            else:
-                self.headerbar.set_subtitle("Connected")
+            self.headerbar.set_subtitle("Connected")
         elif self.net.connection_status == ConnectionStatus.NOT_CONNECTED:
             self.headerbar.set_subtitle("Not connected")
         elif self.net.connection_status == ConnectionStatus.CONNECTING:
