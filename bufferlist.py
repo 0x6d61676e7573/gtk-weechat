@@ -278,7 +278,7 @@ class BufferList(GObject.GObject):
             if path.get_depth() == 2:
                 path.up()
                 if self.tree.row_expanded(path):
-                    break;
+                    break
             else:
                 break
             current_bufptr = self.buffer_store[tree_iter_next][2]
@@ -292,10 +292,10 @@ class BufferList(GObject.GObject):
         tree_iter_prev = self.buffer_store.get_prev_tree_iter(current_bufptr)
         while tree_iter_prev:
             path = self.buffer_store.get_path(tree_iter_prev)
-            if path.get_depth() is 2:
+            if path.get_depth() == 2:
                 path.up()
                 if self.tree.row_expanded(path):
-                    break;
+                    break
             else:
                 break
             current_bufptr = self.buffer_store[tree_iter_prev][2]
