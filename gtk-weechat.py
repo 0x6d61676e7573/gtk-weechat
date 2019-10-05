@@ -18,28 +18,30 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+from state import State
+from connection import ConnectionSettings
+from bufferlist import BufferList
+import copy
+import config
+from buffer import Buffer
+import protocol
+from network import Network, ConnectionStatus
+from gi.repository import Gtk, Gio, GLib, Gdk
+import gi
+import traceback
 import os
 import sys
 if sys.version_info < (3,):
     sys.exit("Requires Python version 3.0 or higher. (Version {}.{} detected)".format(
         *sys.version_info))
-import traceback
-import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gio, GLib, Gdk
-from network import Network, ConnectionStatus
-import protocol
-from buffer import Buffer
-import config
-import copy
-from bufferlist import BufferList
-from connection import ConnectionSettings
-from state import State
 
 CONFIG_DIR = os.path.dirname(os.path.realpath(__file__))
 
+
 class MainWindow(Gtk.ApplicationWindow):
     """GTK Main Window."""
+
     def __init__(self, config, *args, **kwargs):
         Gtk.ApplicationWindow.__init__(self, *args, **kwargs)
         self.set_default_size(950, 700)
@@ -51,7 +53,8 @@ class MainWindow(Gtk.ApplicationWindow):
         # Set up a list of buffer objects, holding data for every buffer
         self.buffers = BufferList()
         self.buffers.connect("bufferSwitched", self.on_buffer_switched)
-        self.buffers.connect_after("bufferSwitched", self.after_buffer_switched)
+        self.buffers.connect_after(
+            "bufferSwitched", self.after_buffer_switched)
 
         # Set up GTK box
         box_horizontal = Gtk.Box(Gtk.Orientation.HORIZONTAL, 0)
@@ -66,7 +69,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_titlebar(self.headerbar)
 
         # Add widget showing list of buffers
-        box_horizontal.pack_start(self.buffers.treescrolledwindow, False, False, 0)
+        box_horizontal.pack_start(
+            self.buffers.treescrolledwindow, False, False, 0)
         sep = Gtk.Separator()
         box_horizontal.pack_start(sep, False, False, 0)
 
@@ -95,7 +99,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.menuitem_connect.show()
         menu.append(self.menuitem_connect)
         self.menuitem_disconnect = Gtk.MenuItem(label="Disconnect")
-        self.menuitem_disconnect.connect("activate", self.on_disconnect_clicked)
+        self.menuitem_disconnect.connect(
+            "activate", self.on_disconnect_clicked)
         self.menuitem_disconnect.set_sensitive(False)
         self.menuitem_disconnect.show()
         menu.append(self.menuitem_disconnect)
@@ -143,13 +148,13 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Enable darkmode if enabled before
         self.dark_fallback_provider = Gtk.CssProvider()
-        self.dark_fallback_provider.load_from_path("{}/dark_fallback.css".format(CONFIG_DIR))
+        self.dark_fallback_provider.load_from_path(
+            "{}/dark_fallback.css".format(CONFIG_DIR))
         if STATE.get_dark():
             menuitem_darkmode.set_active(True)
 
-        #Sync our local hotlist with the weechat server
+        # Sync our local hotlist with the weechat server
         GLib.timeout_add_seconds(60, self.request_hotlist)
-
 
     def on_darkmode_toggled(self, source_object):
         """Callback for when the menubutton Dark is toggled. """
@@ -161,7 +166,7 @@ class MainWindow(Gtk.ApplicationWindow):
             else:
                 settings.props.gtk_application_prefer_dark_theme = False
         else:
-            #Non-standard theme, use fallback style provider
+            # Non-standard theme, use fallback style provider
             style_context = self.get_style_context()
             screen = Gdk.Screen().get_default()
             if dark:
@@ -178,7 +183,8 @@ class MainWindow(Gtk.ApplicationWindow):
     def request_hotlist(self):
         """" Ask server to send a hotlist. """
         if self.net.connection_status is ConnectionStatus.CONNECTED:
-            self.net.send_to_weechat("(hotlist) hdata hotlist:gui_hotlist(*)\n")
+            self.net.send_to_weechat(
+                "(hotlist) hdata hotlist:gui_hotlist(*)\n")
         return True
 
     def on_delete_event(self, *args):
@@ -232,7 +238,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self.menuitem_connect.set_sensitive(False)
             self.save_expanded_buffers()
             print("Reconnecting in 5 seconds...")
-            #Lambda function makes sure we only connect once
+            # Lambda function makes sure we only connect once
             GLib.timeout_add_seconds(
                 5, lambda: self.net.connect_weechat() and False)
 
@@ -251,7 +257,8 @@ class MainWindow(Gtk.ApplicationWindow):
         """ Callback for when enter is pressed in entry widget """
         if self.net.connection_status != ConnectionStatus.CONNECTED:
             return
-        text = copy.deepcopy(entry.get_text()) #returned string can not be stored
+        # returned string can not be stored
+        text = copy.deepcopy(entry.get_text())
         full_name = source_object.data["full_name"]
         message = 'input %s %s\n' % (full_name, text)
         self.net.send_to_weechat(message)
@@ -259,7 +266,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _network_weechat_msg(self, source_object, message):
         """Called when a message is received from WeeChat."""
-        #pylint: disable=bare-except
+        # pylint: disable=bare-except
         try:
             proto = protocol.Protocol()
             if len(message.get_data()) >= 5:
@@ -324,9 +331,9 @@ class MainWindow(Gtk.ApplicationWindow):
                     ptrbuf = item['__path'][0]
                 else:
                     ptrbuf = item['buffer']
-                if self.buffers.active_buffer() is not None and \
-                            ptrbuf != self.buffers.active_buffer().pointer() and \
-                            message.msgid != 'listlines':
+                if self.buffers.active_buffer() is not None and
+                        ptrbuf != self.buffers.active_buffer().pointer() and
+                        message.msgid != 'listlines':
                     if item["highlight"] or "notify_private" in item["tags_array"]:
                         notify_level = "mention"
                     elif "notify_message" in item["tags_array"]:
@@ -503,8 +510,8 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.buffers.tree.collapse_row(path)
             else:
                 path.up()
-                #pylint: disable=unsubscriptable-object
-                #buffer_store is a Gtk.TreeStore derived class
+                # pylint: disable=unsubscriptable-object
+                # buffer_store is a Gtk.TreeStore derived class
                 self.buffers.show(self.buffers.buffer_store[path][2])
                 self.buffers.tree.collapse_row(path)
 
