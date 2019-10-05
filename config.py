@@ -29,7 +29,7 @@ CONFIG_FILENAME = '%s/gtk-weechat.conf' % CONFIG_DIR
 
 CONFIG_DEFAULT_RELAY_LINES = 50
 
-CONFIG_DEFAULT_SECTIONS = ('relay', 'look', 'color','color_darkmode')
+CONFIG_DEFAULT_SECTIONS = ('relay', 'look', 'color')
 CONFIG_DEFAULT_OPTIONS = (('relay.server', ''),
                           ('relay.port', ''),
                           ('relay.ssl', 'on'),
