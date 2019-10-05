@@ -567,7 +567,7 @@ class Application(Gtk.Application):
 
 # Start the application
 CONFIG = config.read()
-CONNECTION_SETTINGS = ConnectionSettings(config)
+CONNECTION_SETTINGS = ConnectionSettings(CONFIG)
 STATE = State("data.pickle")
 STATE.load_from_file()
 APP = Application(CONFIG)
