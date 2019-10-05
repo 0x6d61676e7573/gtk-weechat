@@ -28,14 +28,17 @@ import config as config_module
 URL_PATTERN = re.compile(
     r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
 
+
 class MessageType(Enum):
     """Definition of message types."""
     SERVER_MESSAGE = 0
     CHAT_MESSAGE = 1
     TIME_STAMP = 2
 
+
 class ChatTextBuffer(Gtk.TextBuffer):
     """Textbuffer to store buffer text."""
+
     def __init__(self, config, layout=None):
         Gtk.TextBuffer.__init__(self)
         self.config = config
@@ -45,18 +48,20 @@ class ChatTextBuffer(Gtk.TextBuffer):
         self.longest_prefix = 0
         self.indent_tag_list = []
         self.d_previous = datetime.datetime.fromtimestamp(0)
-        
-        #We need the color class that convert formatting codes in network 
-        #data to codes that the parser functions in this class can handle
+
+        # We need the color class that convert formatting codes in network
+        # data to codes that the parser functions in this class can handle
         self._color = color.Color(config_module.color_options(), False)
-        
-        #Text tags used for formatting
-        self.time_tag = self.create_tag(justification=Gtk.Justification.RIGHT, weight=Pango.Weight.BOLD)
+
+        # Text tags used for formatting
+        self.time_tag = self.create_tag(
+            justification=Gtk.Justification.RIGHT, weight=Pango.Weight.BOLD)
         bold_tag = self.create_tag(weight=Pango.Weight.BOLD)
         underline_tag = self.create_tag(underline=Pango.Underline.SINGLE)
         italic_tag = self.create_tag(style=Pango.Style.ITALIC)
-        reverse_tag = self.create_tag() #reverse video is not implemented
-        self.attr_tag = {"*":bold_tag,"_":underline_tag,"/":italic_tag, "!":reverse_tag}
+        reverse_tag = self.create_tag()  # reverse video is not implemented
+        self.attr_tag = {"*": bold_tag, "_": underline_tag,
+                         "/": italic_tag, "!": reverse_tag}
         self.url_tag = self.create_tag(underline=Pango.Underline.SINGLE)
 
     def display(self, time, prefix, text, tags_array):
@@ -71,7 +76,8 @@ class ChatTextBuffer(Gtk.TextBuffer):
             d = datetime.datetime.fromtimestamp(float(time))
         delta = d-self.d_previous
         if delta.total_seconds() >= 5*60 and message_type != MessageType.SERVER_MESSAGE and prefix != self.last_prefix:
-            self.insert_with_tags(self.get_end_iter(),d.strftime(self.config['look']['buffer_time_format']) + "\n", self.time_tag)
+            self.insert_with_tags(self.get_end_iter(), d.strftime(
+                self.config['look']['buffer_time_format']) + "\n", self.time_tag)
             self.last_message_type = MessageType.TIME_STAMP
             self.d_previous = d
 
@@ -81,27 +87,29 @@ class ChatTextBuffer(Gtk.TextBuffer):
                 prefix = prefix.replace("<--", "\u27F5")
                 prefix = prefix.replace("--", "\u2014")
             self.last_prefix = prefix
-            self._display_with_colors(prefix + " ", indent="prefix", msg_type=message_type)
+            self._display_with_colors(
+                prefix + " ", indent="prefix", msg_type=message_type)
             has_prefix = True
         if text:
-            self._display_with_colors(text, indent="no_prefix" if has_prefix == False else "text", msg_type=message_type)
+            self._display_with_colors(
+                text, indent="no_prefix" if has_prefix == False else "text", msg_type=message_type)
             if text[-1] != "\n":
-                self.insert(self.get_end_iter(),"\n")
+                self.insert(self.get_end_iter(), "\n")
         else:
-            self.insert(self.get_end_iter(),"\n")
+            self.insert(self.get_end_iter(), "\n")
         self.last_message_type = message_type
 
     def _display_with_colors(self, string, indent=False, msg_type=MessageType.CHAT_MESSAGE):
         indent_tag = self.create_tag()
         self.indent_tag_list.append(indent_tag)
         items = string.split('\x01')
-        color_tag = self.create_tag() 
+        color_tag = self.create_tag()
         attr_list = []
         stripped_items = []
         # The way split works, the first item will be
         # either '' or not preceded by \x01
         if len(items[0]) > 0:
-            self.insert_with_tags(self.get_end_iter(),items[0], indent_tag)
+            self.insert_with_tags(self.get_end_iter(), items[0], indent_tag)
             stripped_items.append(items[0])
         for item in items[1:]:
             if item.startswith('('):
@@ -135,7 +143,8 @@ class ChatTextBuffer(Gtk.TextBuffer):
                                     if code != "$":
                                         rgba = Gdk.RGBA()
                                         rgba.parse(code)
-                                        color_tag = self.create_tag(foreground_rgba=rgba)
+                                        color_tag = self.create_tag(
+                                            foreground_rgba=rgba)
                                 elif action == "B":
                                     if code != "$":
                                         rgba = Gdk.RGBA()
@@ -143,17 +152,21 @@ class ChatTextBuffer(Gtk.TextBuffer):
                                         color_tag.props.background_rgba = rgba
                     item = item[pos+1:]
             if len(item) > 0:
-                self.insert_with_tags(self.get_end_iter(),item, color_tag, *attr_list, indent_tag)
+                self.insert_with_tags(
+                    self.get_end_iter(), item, color_tag, *attr_list, indent_tag)
                 stripped_items.append(item)
         if indent == "prefix":
             text = ''.join(stripped_items)
-            width = self.get_text_pixel_width(text, True if self.attr_tag["*"] in attr_list else False)
+            width = self.get_text_pixel_width(
+                text, True if self.attr_tag["*"] in attr_list else False)
             indent_tag.props.indent = -width
-            indent_tag.props.left_margin = self.longest_prefix-width+int(self.config['look']['margin_size'])
-            if self.last_message_type != MessageType.TIME_STAMP and (msg_type==MessageType.CHAT_MESSAGE or msg_type!=self.last_message_type):
+            indent_tag.props.left_margin = self.longest_prefix - \
+                width+int(self.config['look']['margin_size'])
+            if self.last_message_type != MessageType.TIME_STAMP and (msg_type == MessageType.CHAT_MESSAGE or msg_type != self.last_message_type):
                 indent_tag.props.pixels_above_lines = 10
         elif indent == "no_prefix":
-            indent_tag.props.left_margin = self.longest_prefix+int(self.config['look']['margin_size'])
+            indent_tag.props.left_margin = self.longest_prefix + \
+                int(self.config['look']['margin_size'])
         if indent in ("no_prefix", "text"):
             stripped_items = ''.join(stripped_items)
             for url_match in URL_PATTERN.finditer(stripped_items):
@@ -163,7 +176,7 @@ class ChatTextBuffer(Gtk.TextBuffer):
                 end = self.get_end_iter()
                 end.backward_chars(len(stripped_items)-span[1])
                 tag = self.create_tag()
-                tag.connect("event", self.on_url_clicked,url_match[0])
+                tag.connect("event", self.on_url_clicked, url_match[0])
                 self.apply_tag(tag, start, end)
                 self.apply_tag(self.url_tag, start, end)
 
@@ -174,15 +187,14 @@ class ChatTextBuffer(Gtk.TextBuffer):
             return
         Gtk.show_uri_on_window(None, arg, Gdk.CURRENT_TIME)
 
-
     def get_text_pixel_width(self, text, bold=False):
-        self.layout.set_text(text,-1)
+        self.layout.set_text(text, -1)
         self.layout.set_attributes(None)
         if bold:
-            #workaround to get an attribute list in pygobject:
-            attr_list = Pango.parse_markup("<b>"+text+"</b>",-1,"0")[1]
+            # workaround to get an attribute list in pygobject:
+            attr_list = Pango.parse_markup("<b>"+text+"</b>", -1, "0")[1]
             self.layout.set_attributes(attr_list)
-        (width, _)=self.layout.get_pixel_size()
+        (width, _) = self.layout.get_pixel_size()
         if width > self.longest_prefix:
             for tag in self.indent_tag_list:
                 tag.props.left_margin += width-self.longest_prefix
@@ -202,7 +214,7 @@ class BufferWidget(Gtk.Box):
         self.config = config
         self.set_orientation(Gtk.Orientation.VERTICAL)
         horizontal_box = Gtk.Box(Gtk.Orientation.HORIZONTAL)
-        self.pack_start(horizontal_box,True,True,0)
+        self.pack_start(horizontal_box, True, True, 0)
         self.active = False
 
         # Scrolling:
@@ -213,7 +225,7 @@ class BufferWidget(Gtk.Box):
         self.scrolledwindow = Gtk.ScrolledWindow()
         self.scrolledwindow.set_hexpand(True)
         self.scrolledwindow.set_vexpand(True)
-        #self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.ALWAYS)
+        # self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.ALWAYS)
         self.scrolledwindow.connect("scroll-event", self.on_scroll_event)
         self.scrolledwindow.connect("scroll-child", self.on_scroll_child)
         self.scrolledwindow.connect("edge-reached", self.on_edge_reached)
@@ -229,7 +241,7 @@ class BufferWidget(Gtk.Box):
         horizontal_box.pack_start(self.scrolledwindow, True, True, 0)
         self.adjustment = self.textview.get_vadjustment()
         self.textview.connect("event", self.on_event)
-        
+
         # Entry widget
         self.entry = Gtk.Entry()
         self.entry.connect("key-press-event", self.on_key_press)
@@ -253,15 +265,18 @@ class BufferWidget(Gtk.Box):
         horizontal_box.pack_start(scrolledwindow, False, False, 0)
 
         # Mouse cursors
-        self.pointer_cursor = Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "pointer")
-        self.text_cursor = Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "text")
+        self.pointer_cursor = Gdk.Cursor.new_from_name(
+            Gdk.Display.get_default(), "pointer")
+        self.text_cursor = Gdk.Cursor.new_from_name(
+            Gdk.Display.get_default(), "text")
 
     def on_event(self, source, event):
         """ Handler for mouse movement events. """
         if event.type != Gdk.EventType.MOTION_NOTIFY:
             return False
         win = self.textview.get_window(Gtk.TextWindowType.TEXT)
-        coords = self.textview.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
+        coords = self.textview.window_to_buffer_coords(
+            Gtk.TextWindowType.TEXT, event.x, event.y)
         text_iter = self.textview.get_iter_at_location(*coords)
         if text_iter[0] and text_iter[1].has_tag(self.url_tag):
             win.set_cursor(self.pointer_cursor)
@@ -273,7 +288,8 @@ class BufferWidget(Gtk.Box):
             text = self.entry.get_text()
             cursor_pos = self.entry.props.cursor_position
             text = text[:cursor_pos]
-            word_pos = text.rfind(' ')+1 if self.completions_word_offset is None else self.completions_word_offset
+            word_pos = text.rfind(
+                ' ')+1 if self.completions_word_offset is None else self.completions_word_offset
             self.completions_word_offset = word_pos
             if cursor_pos == word_pos:
                 return True
@@ -295,14 +311,15 @@ class BufferWidget(Gtk.Box):
             if word_pos == 0:
                 match += ": "
             buf.insert_text(word_pos, match, -1)
-            self.entry.emit("move-cursor", Gtk.MovementStep.VISUAL_POSITIONS, len(match), False)
+            self.entry.emit(
+                "move-cursor", Gtk.MovementStep.VISUAL_POSITIONS, len(match), False)
             return True
         else:
             self.completions = None
             self.completions_word_offset = None
             return False
 
-    def on_edge_reached(self,source_widget,pos):
+    def on_edge_reached(self, source_widget, pos):
         """This callback gets called when chat is scrolled to top/bottom."""
        # if not self.active:
        #     return
@@ -313,8 +330,8 @@ class BufferWidget(Gtk.Box):
 
     def on_changed_value(self, source, scroll, value):
         """This function is called when the scrollbar is dragged up/down."""
-        if scroll in (Gtk.ScrollType.START, Gtk.ScrollType.PAGE_UP, \
-                Gtk.ScrollType.STEP_UP, Gtk.ScrollType.JUMP):
+        if scroll in (Gtk.ScrollType.START, Gtk.ScrollType.PAGE_UP,
+                      Gtk.ScrollType.STEP_UP, Gtk.ScrollType.JUMP):
             adj = self.scrolledwindow.get_vadjustment()
             if adj.get_value()+adj.get_page_size() < adj.get_upper():
                 self.autoscroll = False
@@ -328,8 +345,8 @@ class BufferWidget(Gtk.Box):
 
     def on_scroll_child(self, source_event, scroll, horizontal):
         """This callback is called when scrolling with up/down/pgup/pgdown."""
-        if scroll in (Gtk.ScrollType.STEP_BACKWARD, 
-                Gtk.ScrollType.START, Gtk.ScrollType.PAGE_BACKWARD):
+        if scroll in (Gtk.ScrollType.STEP_BACKWARD,
+                      Gtk.ScrollType.START, Gtk.ScrollType.PAGE_BACKWARD):
             self.autoscroll = False
 
     def on_scroll_event(self, source_object, event):
@@ -337,7 +354,7 @@ class BufferWidget(Gtk.Box):
         if event.direction == Gdk.ScrollDirection.UP:
             self.autoscroll = False
         elif event.direction == Gdk.ScrollDirection.SMOOTH:
-            if event.delta_y<0:
+            if event.delta_y < 0:
                 self.autoscroll = False
 
     def scrollbottom(self):
@@ -346,20 +363,22 @@ class BufferWidget(Gtk.Box):
             return
         if not self.autoscroll:
             return
-        #Make sure widget is properly updated before trying to scroll it:
+        # Make sure widget is properly updated before trying to scroll it:
         while Gtk.events_pending():
             Gtk.main_iteration()
         adj = self.scrolledwindow.get_vadjustment()
         adj.set_value(adj.get_upper()-adj.get_page_size())
 
+
 class Buffer(GObject.GObject):
     """A WeeChat buffer that holds buffer data."""
     __gsignals__ = {
-        'messageToWeechat' : (GObject.SIGNAL_RUN_LAST, None,
-                            (Gtk.Widget,)),
-        'notifyLevelChanged' : (GObject.SIGNAL_RUN_LAST, None,
-                                tuple())
-        }
+        'messageToWeechat': (GObject.SIGNAL_RUN_LAST, None,
+                             (Gtk.Widget,)),
+        'notifyLevelChanged': (GObject.SIGNAL_RUN_LAST, None,
+                               tuple())
+    }
+
     def __init__(self, config, data={}):
         GObject.GObject.__init__(self)
         self.config = config
@@ -368,20 +387,23 @@ class Buffer(GObject.GObject):
         self.widget = BufferWidget(self.config)
         self.widget.entry.connect("activate", self.on_send_message)
         self.nicklist_data = Gtk.ListStore(str)
-        self.chat = ChatTextBuffer(config, layout=self.widget.textview.create_pango_layout())
+        self.chat = ChatTextBuffer(
+            config, layout=self.widget.textview.create_pango_layout())
         self.widget.textview.set_buffer(self.chat)
         self.widget.nick_display_widget.set_model(self.nicklist_data)
         self.widget.url_tag = self.chat.url_tag
-        green=Gdk.RGBA(0, 0.7, 0, 1)
-        orange=Gdk.RGBA(1, 0.5, 0.2, 1)
-        blue=Gdk.RGBA(0.2, 0.2, 0.7, 1)
-        self.colors_for_notify = {"default": self.get_theme_fg_color(), "mention":green, "message":orange, "low":blue}
-        self.notify_values = {"default": 0, "low": 1, "message":2, "mention":3}
+        green = Gdk.RGBA(0, 0.7, 0, 1)
+        orange = Gdk.RGBA(1, 0.5, 0.2, 1)
+        blue = Gdk.RGBA(0.2, 0.2, 0.7, 1)
+        self.colors_for_notify = {"default": self.get_theme_fg_color(
+        ), "mention": green, "message": orange, "low": blue}
+        self.notify_values = {"default": 0,
+                              "low": 1, "message": 2, "mention": 3}
         self.notify_level = "default"
 
     def get_theme_fg_color(self):
         styleContext = self.widget.get_style_context()
-        (color_is_defined,theme_fg_color) = styleContext.lookup_color("theme_fg_color") 
+        (color_is_defined, theme_fg_color) = styleContext.lookup_color("theme_fg_color")
         return theme_fg_color if color_is_defined else Gdk.RGBA(0, 0, 0, 1)
 
     def update_buffer_default_color(self):
@@ -415,18 +437,18 @@ class Buffer(GObject.GObject):
               #      '+': 'yellow',
               #  }
                 #color = prefix_color.get(nick['prefix'], 'green')
-                #if color:
+                # if color:
                 #    icon = QtGui.QIcon(
-                 #       resource_filename(__name__,
-                 #                         'data/icons/bullet_%s_8x8.png' %
-                 #                         color))
+                #       resource_filename(__name__,
+                #                         'data/icons/bullet_%s_8x8.png' %
+                #                         color))
                # else:
-                  #  pixmap = QtGui.QPixmap(8, 8)
-                   # pixmap.fill()
-                   # icon = QtGui.QIcon(pixmap)
+                #  pixmap = QtGui.QPixmap(8, 8)
+                # pixmap.fill()
+                # icon = QtGui.QIcon(pixmap)
                 #item = QtGui.QListWidgetItem(icon, nick['name'])
-                #self.widget.nicklist.addItem(item)
-        #self.widget.nicklist.setVisible(True)
+                # self.widget.nicklist.addItem(item)
+        # self.widget.nicklist.setVisible(True)
 
     def nicklist_remove_item(self, parent, group, name):
         """Remove a group/nick from nicklist."""
@@ -461,11 +483,11 @@ class Buffer(GObject.GObject):
 
     def set_notify_level(self, notify_level):
         if self.notify_values[notify_level] > self.notify_values[self.notify_level]:
-            self.notify_level=notify_level 
+            self.notify_level = notify_level
             self.emit("notifyLevelChanged")
 
     def reset_notify_level(self):
-        self.notify_level="default"
+        self.notify_level = "default"
         self.emit("notifyLevelChanged")
 
     def get_name(self):
@@ -476,10 +498,10 @@ class Buffer(GObject.GObject):
 
     def get_topic(self):
         return self.data["title"]
-        
+
     def pointer(self):
         """Return pointer on buffer."""
-        return self.data.get("__path",[""])[0]
+        return self.data.get("__path", [""])[0]
 
     def clear(self):
         self.chat.delete(*self.chat.get_bounds())
