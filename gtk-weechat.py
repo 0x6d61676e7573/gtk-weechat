@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- CODING: utf-8 -*-
 #
 # Copyright (C) 2011-2019 Sébastien Helleu <flashcode@flashtux.org>
 #
@@ -331,9 +331,9 @@ class MainWindow(Gtk.ApplicationWindow):
                     ptrbuf = item['__path'][0]
                 else:
                     ptrbuf = item['buffer']
-                if self.buffers.active_buffer() is not None and
-                        ptrbuf != self.buffers.active_buffer().pointer() and
-                        message.msgid != 'listlines':
+                if (self.buffers.active_buffer() is not None and
+                    ptrbuf != self.buffers.active_buffer().pointer() and
+                    message.msgid != 'listlines'):
                     if item["highlight"] or "notify_private" in item["tags_array"]:
                         notify_level = "mention"
                     elif "notify_message" in item["tags_array"]:
