@@ -19,6 +19,10 @@
 #
 
 import os
+import sys
+if sys.version_info < (3,):
+    sys.exit("Requires Python version 3.0 or higher. (Version {}.{} detected)".format(
+        *sys.version_info))
 import traceback
 import gi
 gi.require_version('Gtk', '3.0')
