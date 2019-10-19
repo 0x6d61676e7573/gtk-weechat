@@ -209,7 +209,7 @@ class ChatTextBuffer(Gtk.TextBuffer):
 
 
 class BufferWidget(Gtk.Box):
-    def __init__(self, config):
+    def __init__(self, config, has_nicklist):
         Gtk.Box.__init__(self)
         self.config = config
         self.set_orientation(Gtk.Orientation.VERTICAL)
@@ -250,19 +250,20 @@ class BufferWidget(Gtk.Box):
         self.completions_word_offset = None
 
         # Nicklist widget
-        nicklist_renderer = Gtk.CellRendererText()
-        nicklist_column = Gtk.TreeViewColumn("", nicklist_renderer, text=0)
-        self.nick_display_widget = Gtk.TreeView()
-        self.nick_display_widget.set_headers_visible(False)
-        self.nick_display_widget.set_can_focus(False)
-        self.nick_display_widget.append_column(nicklist_column)
-        self.nick_display_widget.get_selection().set_mode(Gtk.SelectionMode.NONE)
-        scrolledwindow = Gtk.ScrolledWindow()
-        scrolledwindow.set_propagate_natural_width(True)
-        scrolledwindow.add(self.nick_display_widget)
-        sep = Gtk.Separator()
-        horizontal_box.pack_start(sep, False, False, 0)
-        horizontal_box.pack_start(scrolledwindow, False, False, 0)
+        if has_nicklist:
+            nicklist_renderer = Gtk.CellRendererText()
+            nicklist_column = Gtk.TreeViewColumn("", nicklist_renderer, text=0)
+            self.nick_display_widget = Gtk.TreeView()
+            self.nick_display_widget.set_headers_visible(False)
+            self.nick_display_widget.set_can_focus(False)
+            self.nick_display_widget.append_column(nicklist_column)
+            self.nick_display_widget.get_selection().set_mode(Gtk.SelectionMode.NONE)
+            scrolledwindow = Gtk.ScrolledWindow()
+            scrolledwindow.set_propagate_natural_width(True)
+            scrolledwindow.add(self.nick_display_widget)
+            sep = Gtk.Separator()
+            horizontal_box.pack_start(sep, False, False, 0)
+            horizontal_box.pack_start(scrolledwindow, False, False, 0)
 
         # Mouse cursors
         self.pointer_cursor = Gdk.Cursor.new_from_name(
@@ -384,13 +385,14 @@ class Buffer(GObject.GObject):
         self.config = config
         self.data = data
         self.nicklist = {}
-        self.widget = BufferWidget(self.config)
+        self.widget = BufferWidget(self.config, self.data["nicklist"])
         self.widget.entry.connect("activate", self.on_send_message)
         self.nicklist_data = Gtk.ListStore(str)
         self.chat = ChatTextBuffer(
             config, layout=self.widget.textview.create_pango_layout())
         self.widget.textview.set_buffer(self.chat)
-        self.widget.nick_display_widget.set_model(self.nicklist_data)
+        if self.data["nicklist"]:
+            self.widget.nick_display_widget.set_model(self.nicklist_data)
         self.widget.url_tag = self.chat.url_tag
         green = Gdk.RGBA(0, 0.7, 0, 1)
         orange = Gdk.RGBA(1, 0.5, 0.2, 1)
