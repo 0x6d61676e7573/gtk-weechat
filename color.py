@@ -94,7 +94,7 @@ class Color():
     def _convert_weechat_color(self, color):
         try:
             index = int(color)
-            if index == 13:      #channel name color
+            if index in (1, 13):      #chat, channel name color
                 return '\x01(Fr$)'
             if index == 15:      #own nick color
                 return '\x01(Fr*)'
