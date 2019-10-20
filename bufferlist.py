@@ -152,7 +152,7 @@ class BufferList(GObject.GObject):
         self.buffers.append(buf)
         #Find position in the list of buffers
         parent = None
-        match = re.match(r"irc\.(\w+)\.#[\w.]+", buf.data.get('full_name'))
+        match = re.match(r"irc\.(\w+)\.#?[\w.]+", buf.data.get('full_name'))
         if match is not None:
             server = match.group(1)
             parent = self.get_server_row_iter(server)
