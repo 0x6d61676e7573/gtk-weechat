@@ -18,11 +18,10 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sys
 import struct
-from gi.repository import Gio, Gtk, GLib, GObject
 from enum import Enum
 import gi
+from gi.repository import Gio, GLib, GObject
 gi.require_version('Gtk', '3.0')
 
 
@@ -36,6 +35,7 @@ _PROTO_SYNC_CMDS = '(listbuffers) hdata buffer:gui_buffers(*) number,full_name,s
 
 
 class ConnectionStatus(Enum):
+    """Connection status definitions."""
     NOT_CONNECTED = 1
     CONNECTING = 2
     CONNECTED = 3
@@ -44,6 +44,7 @@ class ConnectionStatus(Enum):
 
 
 class Network(GObject.GObject):
+    """Manage network connection."""
     __gsignals__ = {"messageFromWeechat": (GObject.SIGNAL_RUN_FIRST, None, (GLib.Bytes,)),
                     "connectionChanged": (GObject.SIGNAL_RUN_FIRST, None, ())}
 
@@ -53,12 +54,15 @@ class Network(GObject.GObject):
         self.cancel_network_reads = Gio.Cancellable()
         self.message_buffer = b''
         self.connection_status = ConnectionStatus.NOT_CONNECTED
+        self.host = None
+        self.port = None
+        self.socket = None
+        self.socketclient = None
 
     def check_settings(self):
         """ Returns True if settings required to connect are filled in. """
-        return False if self.config["relay"]["server"] == "" \
-            or self.config["relay"]["port"] == "" \
-            else True
+        return self.config["relay"]["server"] != ""\
+            and self.config["relay"]["port"] != ""
 
     def connect_weechat(self):
         """Sets up a socket connected to the WeeChat relay."""
@@ -71,7 +75,7 @@ class Network(GObject.GObject):
         except ValueError:
             print("Invalid port, must be an integer.")
             return False
-        self.adr = Gio.NetworkAddress.new(self.host, self.port)
+        network_address = Gio.NetworkAddress.new(self.host, self.port)
         self.socket = None
         self.socketclient = Gio.SocketClient.new()
         if self.config["relay"]["ssl"] == "on":
@@ -81,16 +85,16 @@ class Network(GObject.GObject):
                                                        Gio.TlsCertificateFlags.INSECURE |
                                                        Gio.TlsCertificateFlags.NOT_ACTIVATED |
                                                        Gio.TlsCertificateFlags.GENERIC_ERROR)
-        if self.cancel_network_reads.is_cancelled:
+        if self.cancel_network_reads.is_cancelled():
             self.cancel_network_reads.reset()
         self.socketclient.connect_async(
-            self.adr, None, self.connected_func, None)
+            network_address, None, self._connected_func, None)
         if self.connection_status is not ConnectionStatus.RECONNECTING:
             self.connection_status = ConnectionStatus.CONNECTING
             self.emit("connectionChanged")
         return True
 
-    def connected_func(self, source_object, res, *user_data):
+    def _connected_func(self, source_object, res, *user_data):
         """Callback function called after connection attempt."""
         try:
             self.socket = self.socketclient.connect_finish(res)
@@ -116,8 +120,9 @@ class Network(GObject.GObject):
                 4096, 0, self.cancel_network_reads, self.get_message)
 
     def get_message(self, source_object, res, *user_data):
-        """Callback function to read network data, split it into"""
-        """WeeChat messages that are passed on to the application."""
+        """Callback function to read network data, split it into
+        WeeChat messages that are passed on to the application.
+        """
         try:
             gbytes = self.input.read_bytes_finish(res)
         except GLib.Error as err:
