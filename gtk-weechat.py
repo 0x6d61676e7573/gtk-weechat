@@ -17,24 +17,24 @@
 # You should have received a copy of the GNU General Public License
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
-
+import copy
+import traceback
+import os
+import sys
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gio, GLib, Gdk
 from state import State
 from connection import ConnectionSettings
 from bufferlist import BufferList
-import copy
 import config
 from buffer import Buffer
 import protocol
 from network import Network, ConnectionStatus
-from gi.repository import Gtk, Gio, GLib, Gdk
-import gi
-import traceback
-import os
-import sys
 if sys.version_info < (3,):
     sys.exit("Requires Python version 3.0 or higher. (Version {}.{} detected)".format(
         *sys.version_info))
-gi.require_version('Gtk', '3.0')
+
 
 CONFIG_DIR = os.path.dirname(os.path.realpath(__file__))
 
