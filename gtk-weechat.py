@@ -57,7 +57,8 @@ class MainWindow(Gtk.ApplicationWindow):
             "bufferSwitched", self.after_buffer_switched)
 
         # Set up GTK box
-        box_horizontal = Gtk.Box(Gtk.Orientation.HORIZONTAL, 0)
+        box_horizontal = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                                 spacing=0)
         self.add(box_horizontal)
 
         # Set up a headerbar
