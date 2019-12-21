@@ -111,6 +111,9 @@ class MainWindow(Gtk.ApplicationWindow):
         menu.append(menuitem_quit)
         menubutton.set_popup(menu)
 
+        # Make everything visible (All is hidden by default in GTK 3)
+        self.show_all()
+
         # Set up the network module
         self.net = Network(self.config)
         self.net.connect("messageFromWeechat", self._network_weechat_msg)
@@ -557,7 +560,6 @@ class Application(Gtk.Application):
     def do_activate(self):
         if not self.window:
             self.window = MainWindow(self.config, title="Gtk-Weechat", application=self)
-        self.window.show_all()
         self.window.present()
 
     def on_quit(self, *args):
