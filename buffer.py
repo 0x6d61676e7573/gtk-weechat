@@ -278,7 +278,7 @@ class BufferWidget(Gtk.Box):
         coords = self.textview.window_to_buffer_coords(
             Gtk.TextWindowType.TEXT, event.x, event.y)
         text_iter = self.textview.get_iter_at_location(*coords)
-        if text_iter[0] and text_iter[1].has_tag(self.url_tag):
+        if text_iter[0] and text_iter[1].has_tag(self.get_url_tag()):
             win.set_cursor(self.pointer_cursor)
         else:
             win.set_cursor(self.text_cursor)
@@ -369,8 +369,12 @@ class BufferWidget(Gtk.Box):
         adj = self.scrolledwindow.get_vadjustment()
         adj.set_value(adj.get_upper()-adj.get_page_size())
 
+    def get_url_tag(self):
+        """Give us the Textview tag for URL:s. Must be implemented by the Buffer class."""
+        raise NotImplementedError()
 
-class Buffer(GObject.GObject):
+
+class Buffer(BufferWidget):
     """A WeeChat buffer that holds buffer data."""
     __gsignals__ = {
         'messageToWeechat': (GObject.SIGNAL_RUN_LAST, None,
@@ -380,18 +384,15 @@ class Buffer(GObject.GObject):
     }
 
     def __init__(self, config, data={}):
-        GObject.GObject.__init__(self)
-        self.config = config
+        BufferWidget.__init__(self, config)
         self.data = data
         self.nicklist = {}
-        self.widget = BufferWidget(self.config)
-        self.widget.entry.connect("activate", self.on_send_message)
+        self.entry.connect("activate", self.on_send_message)
         self.nicklist_data = Gtk.ListStore(str)
         self.chat = ChatTextBuffer(
-            config, layout=self.widget.textview.create_pango_layout())
-        self.widget.textview.set_buffer(self.chat)
-        self.widget.nick_display_widget.set_model(self.nicklist_data)
-        self.widget.url_tag = self.chat.url_tag
+            config, layout=self.textview.create_pango_layout())
+        self.textview.set_buffer(self.chat)
+        self.nick_display_widget.set_model(self.nicklist_data)
         green = Gdk.RGBA(0, 0.7, 0, 1)
         orange = Gdk.RGBA(1, 0.5, 0.2, 1)
         blue = Gdk.RGBA(0.2, 0.2, 0.7, 1)
@@ -401,8 +402,11 @@ class Buffer(GObject.GObject):
                               "low": 1, "message": 2, "mention": 3}
         self.notify_level = "default"
 
+    def get_url_tag(self):
+        return self.chat.url_tag
+
     def get_theme_fg_color(self):
-        styleContext = self.widget.get_style_context()
+        styleContext = self.get_style_context()
         (color_is_defined, theme_fg_color) = styleContext.lookup_color("theme_fg_color")
         return theme_fg_color if color_is_defined else Gdk.RGBA(0, 0, 0, 1)
 

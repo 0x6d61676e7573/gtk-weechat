@@ -356,7 +356,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 lines.reverse()
             for line in lines:
                 self.buffers.get_buffer_from_pointer(line[0]).chat.display(*line[1])
-                self.buffers.get_buffer_from_pointer(line[0]).widget.scrollbottom()
+                self.buffers.get_buffer_from_pointer(line[0]).scrollbottom()
             # Trying not to freeze GUI on e.g. /list:
             while Gtk.events_pending():
                 Gtk.main_iteration()

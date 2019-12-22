@@ -159,9 +159,9 @@ class BufferList(GObject.GObject):
         self.buffer_store.append(
             parent, (buf.get_name(), buf.colors_for_notify["default"], buf.pointer()))
         if buf.data.get('full_name').startswith("irc") is False:
-            buf.widget.textview.set_monospace(True)
+            buf.textview.set_monospace(True)
         #Add its widget to the stack
-        self.stack.add_named(buf.widget, buf.data["__path"][0])
+        self.stack.add_named(buf, buf.data["__path"][0])
         self.pointer_to_buffer_map[buf.pointer()] = buf
         buf.connect("notifyLevelChanged", self.on_level_changed)
 
@@ -179,7 +179,7 @@ class BufferList(GObject.GObject):
         self.stack.set_visible(self.default_widget)
         self.pointer_to_buffer_map = {}
         for buf in self.buffers:
-            buf.widget.destroy()
+            buf.destroy()
         self.buffers.clear()
         self.buffer_store.clear()
 
@@ -194,11 +194,11 @@ class BufferList(GObject.GObject):
         buf = self.active_buffer()
         if buf is None:
             return
-        if buf.widget.entry.get_selection_bounds():
-            buf.widget.entry.emit("copy-clipboard")
+        if buf.entry.get_selection_bounds():
+            buf.entry.emit("copy-clipboard")
             return
         if buf.chat.get_selection_bounds():
-            buf.widget.textview.emit("copy-clipboard")
+            buf.textview.emit("copy-clipboard")
 
     def show(self, bufptr):
         """ Initiates a buffer switch by emitting the bufferSwitched signal. """
@@ -208,19 +208,19 @@ class BufferList(GObject.GObject):
         """ Switch to that buffer which pointer is provided as argument. """
         active_buf = self.active_buffer()
         if active_buf is not None:
-            active_buf.widget.active = False
+            active_buf.active = False
         buf = self.get_buffer_from_pointer(bufptr)
         self.pointer_to_buffer_map["active"] = buf
-        buf.widget.show_all()
-        self.stack.set_visible_child(buf.widget)
-        buf.widget.entry.grab_focus()
+        buf.show_all()
+        self.stack.set_visible_child(buf)
+        buf.entry.grab_focus()
         buf.reset_notify_level()
         path = self.buffer_store.get_path_from_bufptr(bufptr)
         if path.get_depth() > 1:
             self.tree.expand_to_path(path)
         self.tree.get_selection().select_path(path)
-        buf.widget.active = True
-        buf.widget.scrollbottom()
+        buf.active = True
+        buf.scrollbottom()
 
     def remove(self, bufptr):
         """Removes a buffer. """
@@ -234,7 +234,7 @@ class BufferList(GObject.GObject):
             self.buffer_store.remove(tree_iter)
         #stack holds a reference to widget, must be explicitly destroyed
         #otherwise a name conflict occurs if the buffer is reopened
-        buf.widget.destroy()
+        buf.destroy()
         self.buffers.remove(buf)
 
     def update_buffer(self, bufptr):
