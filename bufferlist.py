@@ -213,6 +213,8 @@ class BufferList(GObject.GObject):
         self.pointer_to_buffer_map["active"] = buf
         buf.show_all()
         self.stack.set_visible_child(buf)
+        if len(buf.nick_display_widget.get_model())==0:
+            buf.nicklist_window.hide()
         buf.entry.grab_focus()
         buf.reset_notify_level()
         path = self.buffer_store.get_path_from_bufptr(bufptr)

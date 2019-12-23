@@ -257,12 +257,12 @@ class BufferWidget(Gtk.Box):
         self.nick_display_widget.set_can_focus(False)
         self.nick_display_widget.append_column(nicklist_column)
         self.nick_display_widget.get_selection().set_mode(Gtk.SelectionMode.NONE)
-        scrolledwindow = Gtk.ScrolledWindow()
-        scrolledwindow.set_propagate_natural_width(True)
-        scrolledwindow.add(self.nick_display_widget)
+        self.nicklist_window = Gtk.ScrolledWindow()
+        self.nicklist_window.set_propagate_natural_width(True)
+        self.nicklist_window.add(self.nick_display_widget)
         sep = Gtk.Separator()
         horizontal_box.pack_start(sep, False, False, 0)
-        horizontal_box.pack_start(scrolledwindow, False, False, 0)
+        horizontal_box.pack_start(self.nicklist_window, False, False, 0)
 
         # Mouse cursors
         self.pointer_cursor = Gdk.Cursor.new_from_name(
@@ -435,6 +435,9 @@ class Buffer(BufferWidget):
             for nick in sorted(self.nicklist[group]['nicks'],
                                key=lambda n: n['name'].lower()):
                 self.nicklist_data.append((nick["prefix"] + nick['name'],))
+        if len(self.nicklist_data) > 0:
+            if not self.nicklist_window.get_visible():
+                self.nicklist_window.show_all()
               #  prefix_color = {
               #      '': '',
               #      ' ': '',
