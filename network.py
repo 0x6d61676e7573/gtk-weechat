@@ -166,7 +166,10 @@ class Network(GObject.GObject):
     def send_to_weechat(self, message):
         """Send a message to WeeChat."""
         output = self.socket.get_output_stream()
-        output.write(message.encode("utf-8"))
+        try:
+            output.write(message.encode("utf-8"))
+        except GLib.Error as err:
+            self.handle_network_error(err)
 
     def handle_network_error(self, err):
         if err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.CANCELLED):
