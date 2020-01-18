@@ -126,23 +126,8 @@ class Network(GObject.GObject):
         try:
             gbytes = self.input.read_bytes_finish(res)
         except GLib.Error as err:
-            if err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.CANCELLED):
-                print("Stopped listening for server messages.")
-                self.connection_status = ConnectionStatus.NOT_CONNECTED
-                self.emit("connectionChanged")
-                return
-            elif err.matches(Gio.tls_error_quark(), Gio.TlsError.EOF):
-                print("Server has closed the connection.")
-                self.connection_status = ConnectionStatus.CONNECTION_LOST
-                self.emit("connectionChanged")
-                return
-            elif err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.BROKEN_PIPE):
-                print("Broken pipe, connection lost.")
-                self.connection_status = ConnectionStatus.RECONNECTING
-                self.emit("connectionChanged")
-                return
-            else:
-                raise
+            self.handle_network_error(err)
+            return
         if gbytes is None:
             # Error, try again
             self.input.read_bytes_async(
@@ -182,6 +167,30 @@ class Network(GObject.GObject):
         """Send a message to WeeChat."""
         output = self.socket.get_output_stream()
         output.write(message.encode("utf-8"))
+
+    def handle_network_error(self, err):
+        if err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.CANCELLED):
+            print("Connection has been cancelled by user.")
+            self.connection_status = ConnectionStatus.NOT_CONNECTED
+            self.emit("connectionChanged")
+            return
+        elif err.matches(Gio.tls_error_quark(), Gio.TlsError.EOF):
+            print("Server has closed the connection.")
+            self.connection_status = ConnectionStatus.CONNECTION_LOST
+            self.emit("connectionChanged")
+            return
+        elif err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.BROKEN_PIPE):
+            print("Broken pipe, connection lost.")
+            self.connection_status = ConnectionStatus.RECONNECTING
+            self.emit("connectionChanged")
+            return
+        elif err.matches(Gio.io_error_quark(), Gio.IOErrorEnum.TIMED_OUT):
+            print("Connection timed out.")
+            self.connection_status=ConnectionStatus.RECONNECTING
+            self.emit("connectionChanged")
+            return
+        else:
+            raise
 
     def desync_weechat(self):
         """Desynchronize from WeeChat."""
