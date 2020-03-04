@@ -18,7 +18,7 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, GObject, Gdk
 import config
 
 
@@ -28,6 +28,7 @@ class ConnectionSettings(Gtk.Window):
 
     def __init__(self, settings):
         Gtk.Window.__init__(self, title="Connection")
+        self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
         self.set_modal(True)
         self.set_keep_above(True)
         self.settings = settings
