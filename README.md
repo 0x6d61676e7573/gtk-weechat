@@ -1,5 +1,5 @@
 # gtk-weechat
-GTK3 client for WeeChat, ported from qweechat.
+GTK3 client for [WeeChat](https://weechat.org), based on [QWeeChat](https://github.com/weechat/qweechat), written by Sébastien Helleu and released under the terms of the GPL3 license.
 
 ## Getting Started
 
@@ -47,3 +47,6 @@ Bug reports are greatly appreciated.
 ## TODO:
 - [ ] Application icon.
 
+## License
+
+This project is licensed under GNU General Public License v3.0.
