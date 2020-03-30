@@ -56,13 +56,16 @@ class ConnectionSettings(Gtk.Window):
 
         self.entry1 = Gtk.Entry()
         grid.attach(self.entry1, 1, 0, 1, 1)
+        self.entry1.set_activates_default(True)
 
         self.entry2 = Gtk.Entry()
         grid.attach(self.entry2, 1, 1, 1, 1)
+        self.entry2.set_activates_default(True)
 
         self.entry3 = Gtk.Entry()
         self.entry3.set_visibility(False)
         grid.attach(self.entry3, 1, 2, 1, 1)
+        self.entry3.set_activates_default(True)
 
         switch1_box = Gtk.Box()
         switch2_box = Gtk.Box()
