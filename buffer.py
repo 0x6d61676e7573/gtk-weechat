@@ -237,6 +237,7 @@ class BufferWidget(Gtk.Box):
         self.textview.set_can_focus(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         self.textview.set_right_margin(int(self.config['look']['margin_size']))
+        self.textview.set_monospace(True)
         self.scrolledwindow.add(self.textview)
         horizontal_box.pack_start(self.scrolledwindow, True, True, 0)
         self.adjustment = self.textview.get_vadjustment()
