@@ -148,47 +148,47 @@ class Protocol:
 
     def _obj_type(self):
         """Read type in data (3 chars)."""
-        if len(self.data) < 3:
+        if (self._data_size - self._idx) < 3:
             self.data = ''
             return ''
-        objtype = self.data[0:3].decode("utf-8")
-        self.data = self.data[3:]
+        objtype = self.data[self._idx:self._idx + 3].decode("utf-8")
+        self._idx += 3
         return objtype
 
     def _obj_len_data(self, length_size):
         """Read length (1 or 4 bytes), then value with this length."""
-        if len(self.data) < length_size:
+        if (self._data_size - self._idx) < length_size:
             self.data = ''
             return None
         if length_size == 1:
-            length = struct.unpack('B', self.data[0:1])[0]
-            self.data = self.data[1:]
+            length = struct.unpack('B', self.data[self._idx:self._idx + 1])[0]
+            self._idx += 1
         else:
             length = self._obj_int()
         if length < 0:
             return None
         if length > 0:
-            value = self.data[0:length]
-            self.data = self.data[length:]
+            value = self.data[self._idx:self._idx + length]
+            self._idx += length
         else:
             value = b''
         return value
 
     def _obj_char(self):
         """Read a char in data."""
-        if len(self.data) < 1:
+        if (self._data_size - self._idx) < 1:
             return 0
-        value = struct.unpack('b', self.data[0:1])[0]
-        self.data = self.data[1:]
+        value = struct.unpack('b', self.data[self._idx:self._idx + 1])[0]
+        self._idx += 1
         return value
 
     def _obj_int(self):
         """Read an integer in data (4 bytes)."""
-        if len(self.data) < 4:
+        if (self._data_size - self._idx) < 4:
             self.data = ''
             return 0
-        value = struct.unpack('>i', self.data[0:4])[0]
-        self.data = self.data[4:]
+        value = struct.unpack('>i', self.data[self._idx:self._idx + 4])[0]
+        self._idx += 4
         return value
 
     def _obj_long(self):
@@ -306,8 +306,8 @@ class Protocol:
     def decode(self, data, separator='\n'):
         """Decode binary data and return list of objects."""
         self.data = data
-        size = len(self.data)
-        size_uncompressed = size
+        self.size = len(self.data)
+        size_uncompressed = self.size
         uncompressed = None
         # uncompress data (if it is compressed)
         compression = struct.unpack('b', self.data[4:5])[0]
@@ -321,18 +321,20 @@ class Protocol:
             uncompressed = self.data[:]
         # skip length and compression flag
         self.data = self.data[5:]
+        self._data_size = len(self.data)
+        self._idx = 0
         # read id
         msgid = self._obj_str()
         if msgid is None:
             msgid = ''
         # read objects
         objects = WeechatObjects(separator=separator)
-        
-        while len(self.data) > 0:
+
+        while self._idx < self._data_size:
             objtype = self._obj_type()
             value = self._obj_cb[objtype]()
             objects.append(WeechatObject(objtype, value, separator=separator))
-        return WeechatMessage(size, size_uncompressed, compression,
+        return WeechatMessage(self.size, size_uncompressed, compression,
                               uncompressed, msgid, objects)
 
 
