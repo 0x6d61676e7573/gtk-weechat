@@ -41,6 +41,10 @@ cd gtk-weechat
 python3 gtk-weechat.py
 ```
 
+Configuration is stored in `$XDG_CONFIG_HOME/gtk-weechat/gtk-weechat.conf`, or the local source directory.
+
+Styles can be loaded from, in order of precedence, `XDG_DATA_HOME/gtk-weechat/css/`, `$XDG_DATA_DIRS/gtk-weechat/css/` or the local source directory
+
 ## Contributing
 Bug reports are greatly appreciated.
 
