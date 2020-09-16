@@ -23,10 +23,6 @@
 import configparser
 import os
 
-#Let's save the config file in the script folder for now
-CONFIG_DIR = os.path.dirname(os.path.realpath(__file__))
-CONFIG_FILENAME = '%s/gtk-weechat.conf' % CONFIG_DIR
-
 CONFIG_DEFAULT_RELAY_LINES = 50
 
 CONFIG_DEFAULT_SECTIONS = ('relay', 'look', 'color')
@@ -91,43 +87,64 @@ CONFIG_DEFAULT_COLOR_OPTIONS = (
 
 config_color_options = []
 
-def read():
-    """Read config file."""
-    global config_color_options
-    config = configparser.RawConfigParser()
-    if os.path.isfile(CONFIG_FILENAME):
-        config.read(CONFIG_FILENAME)
 
-    # add missing sections/options
-    for section in CONFIG_DEFAULT_SECTIONS:
-        if not config.has_section(section):
-            config.add_section(section)
-    for option in reversed(CONFIG_DEFAULT_OPTIONS):
-        section, name = option[0].split('.', 1)
-        if not config.has_option(section, name):
-            config.set(section, name, option[1])
-    section = 'color'
-    for option in reversed(CONFIG_DEFAULT_COLOR_OPTIONS):
-        if option[0] and not config.has_option(section, option[0]):
-            config.set(section, option[0], option[1])
+class GTKWeechatConfig():
+    def __init__(self, config_file):
+        self._config_file = config_file
+        self._config_data = None
 
-    # build list of color options
-    config_color_options = []
-    for option in CONFIG_DEFAULT_COLOR_OPTIONS:
-        if option[0]:
-            config_color_options.append(config.get('color', option[0]))
-        else:
-            config_color_options.append('#000000')
-    return config
+    def _read(self):
+        """Read config file."""
+        global config_color_options
+        config = configparser.RawConfigParser()
+        if os.path.isfile(self._config_file):
+            config.read(self._config_file)
 
-def write(config):
-    """Write config file."""
-    if not os.path.exists(CONFIG_DIR):
-        os.mkdir(CONFIG_DIR, 0o0755)
-    with open(CONFIG_FILENAME, 'w') as cfg:
-        config.write(cfg)
+        # add missing sections/options
+        for section in CONFIG_DEFAULT_SECTIONS:
+            if not config.has_section(section):
+                config.add_section(section)
+        for option in reversed(CONFIG_DEFAULT_OPTIONS):
+            section, name = option[0].split('.', 1)
+            if not config.has_option(section, name):
+                config.set(section, name, option[1])
+        section = 'color'
+        for option in reversed(CONFIG_DEFAULT_COLOR_OPTIONS):
+            if option[0] and not config.has_option(section, option[0]):
+                config.set(section, option[0], option[1])
 
-def color_options():
-    """Return color options."""
-    global config_color_options
-    return config_color_options
+        # build list of color options
+        config_color_options = []
+        for option in CONFIG_DEFAULT_COLOR_OPTIONS:
+            if option[0]:
+                config_color_options.append(config.get('color', option[0]))
+            else:
+                config_color_options.append('#000000')
+        self._config_data = config
+
+    def write(self):
+        """Write config file."""
+        with open(self._config_file, 'w') as cfg:
+            self._config_data.write(cfg)
+
+    @staticmethod
+    def color_options():
+        """Return color options."""
+        global config_color_options
+        return config_color_options
+
+    def get(self, section, option):
+        """ Gets value at section-->option, else returns None if not found """
+        if not self._config_data:
+            self._read()
+        value = None
+        if (section in self._config_data and
+                option in self._config_data[section]):
+            value = self._config_data[section][option]
+        return value
+
+    def set(self, section, option, value):
+        """ Sets section-->option to value """
+        if not self._config_data:
+            self._read()
+        self._config_data[section][option] = value

@@ -27,7 +27,7 @@ from gi.repository import Gtk, Gio, GLib, Gdk
 from state import State
 from connection import ConnectionSettings
 from bufferlist import BufferList
-import config
+from config import GTKWeechatConfig
 from buffer import Buffer
 import protocol
 from network import Network, ConnectionStatus
@@ -157,7 +157,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Autoconnect if necessary
         if self.net.check_settings() is True and \
-                            self.config["relay"]["autoconnect"] == "on":
+                self.config.get("relay", "autoconnect") == "on":
             if self.net.connect_weechat() is False:
                 print("Failed to connect.")
             else:
@@ -585,10 +585,10 @@ class Application(Gtk.Application):
 
 
 # Start the application
-CONFIG = config.read()
-CONNECTION_SETTINGS = ConnectionSettings(CONFIG)
+config = GTKWeechatConfig(CONFIG_FILENAME)
+CONNECTION_SETTINGS = ConnectionSettings(config)
 STATE = State("data.pickle")
 STATE.load_from_file()
-APP = Application(CONFIG)
+APP = Application(config)
 APP.run()
 STATE.dump_to_file()

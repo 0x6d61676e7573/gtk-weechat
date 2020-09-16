@@ -61,15 +61,15 @@ class Network(GObject.GObject):
 
     def check_settings(self):
         """ Returns True if settings required to connect are filled in. """
-        return self.config["relay"]["server"] != ""\
-            and self.config["relay"]["port"] != ""
+        return self.config.get("relay", "server") != ""\
+            and self.config.get("relay", "port") != ""
 
     def connect_weechat(self):
         """Sets up a socket connected to the WeeChat relay."""
         if not self.check_settings():
             return False
-        self.host = self.config["relay"]["server"]
-        port_str = self.config["relay"]["port"]
+        self.host = self.config.get("relay", "server")
+        port_str = self.config.get("relay", "port")
         try:
             self.port = int(port_str)
         except ValueError:
@@ -78,7 +78,7 @@ class Network(GObject.GObject):
         network_address = Gio.NetworkAddress.new(self.host, self.port)
         self.socket = None
         self.socketclient = Gio.SocketClient.new()
-        if self.config["relay"]["ssl"] == "on":
+        if self.config.get("relay", "ssl") == "on":
             self.socketclient.set_tls(True)
             self.socketclient.set_tls_validation_flags(Gio.TlsCertificateFlags.EXPIRED |
                                                        Gio.TlsCertificateFlags.REVOKED |
@@ -109,11 +109,11 @@ class Network(GObject.GObject):
             self.connection_status = ConnectionStatus.CONNECTED
             self.emit("connectionChanged")
             self.send_to_weechat(_PROTO_INIT_CMD.format(
-                password=self.config["relay"]["password"],
+                password=self.config.get("relay", "password"),
                 compression="on")
                 + "\n")
             self.send_to_weechat(_PROTO_SYNC_CMDS.format(
-                lines=self.config["relay"]["lines"])
+                lines=self.config.get("relay", "lines"))
                 + "\n")
             self.input = self.socket.get_input_stream()
             self.input.read_bytes_async(

@@ -19,19 +19,18 @@
 #
 
 from gi.repository import Gtk, GObject, Gdk
-import config
 
 
 class ConnectionSettings(Gtk.Window):
     """Window for entering connection details."""
     __gsignals__ = {"connect": (GObject.SIGNAL_RUN_FIRST, None, ())}
 
-    def __init__(self, settings):
+    def __init__(self, config):
         Gtk.Window.__init__(self, title="Connection")
         self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
         self.set_modal(True)
         self.set_keep_above(True)
-        self.settings = settings
+        self.config = config
         self.connect("destroy", self._on_cancel)
         grid = Gtk.Grid()
         # Set up a headerbar
@@ -97,13 +96,14 @@ class ConnectionSettings(Gtk.Window):
         self.hide()
 
     def _save_settings(self):
-        self.settings["relay"]["server"] = self.entry1.get_text()
-        self.settings["relay"]["port"] = self.entry2.get_text()
-        self.settings["relay"]["password"] = self.entry3.get_text()
-        self.settings["relay"]["ssl"] = "on" if self.switch1.get_active() else "off"
-        self.settings["relay"]["autoconnect"] = "on" if self.switch2.get_active(
-        ) else "off"
-        config.write(self.settings)
+        self.config.set("relay", "server", self.entry1.get_text())
+        self.config.set("relay", "port", self.entry2.get_text())
+        self.config.set("relay", "password", self.entry3.get_text())
+        self.config.set("relay", "ssl",
+                        "on" if self.switch1.get_active() else "off")
+        self.config.set("relay", "autoconnect",
+                        "on" if self.switch2.get_active() else "off")
+        self.config.write()
         self.hide()
 
     def _on_connect(self, widget):
@@ -113,11 +113,11 @@ class ConnectionSettings(Gtk.Window):
         self.emit("connect")
 
     def _fill_in_settings(self):
-        self.entry1.set_text(self.settings["relay"]["server"])
-        self.entry2.set_text(self.settings["relay"]["port"])
-        self.entry3.set_text(self.settings["relay"]["password"])
+        self.entry1.set_text(self.config.get("relay", "server"))
+        self.entry2.set_text(self.config.get("relay", "port"))
+        self.entry3.set_text(self.config.get("relay", "password"))
 
         self.switch1.set_active(
-            self.settings["relay"]["ssl"] == "on")
+            self.config.set("relay", "ssl", "on"))
         self.switch2.set_active(
-            self.settings["relay"]["autoconnect"] == "on")
+            self.config.set("relay", "autoconnect", "on"))

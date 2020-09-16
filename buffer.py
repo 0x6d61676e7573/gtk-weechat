@@ -23,7 +23,6 @@ import re
 import datetime
 from gi.repository import Gtk, Gdk, GObject, Pango
 import color
-import config as config_module
 
 URL_PATTERN = re.compile(
     r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
@@ -51,7 +50,7 @@ class ChatTextBuffer(Gtk.TextBuffer):
 
         # We need the color class that convert formatting codes in network
         # data to codes that the parser functions in this class can handle
-        self._color = color.Color(config_module.color_options(), False)
+        self._color = color.Color(config.color_options(), False)
 
         # Text tags used for formatting
         self.time_tag = self.create_tag(
@@ -77,7 +76,8 @@ class ChatTextBuffer(Gtk.TextBuffer):
         delta = d-self.d_previous
         if delta.total_seconds() >= 5*60 and message_type != MessageType.SERVER_MESSAGE and prefix != self.last_prefix:
             self.insert_with_tags(self.get_end_iter(), d.strftime(
-                self.config['look']['buffer_time_format']) + "\n", self.time_tag)
+                self.config.get('look', 'buffer_time_format')) + "\n",
+                self.time_tag)
             self.last_message_type = MessageType.TIME_STAMP
             self.d_previous = d
 
@@ -161,12 +161,12 @@ class ChatTextBuffer(Gtk.TextBuffer):
                 text, True if self.attr_tag["*"] in attr_list else False)
             indent_tag.props.indent = -width
             indent_tag.props.left_margin = self.longest_prefix - \
-                width+int(self.config['look']['margin_size'])
+                width+int(self.config.get('look', 'margin_size'))
             if self.last_message_type != MessageType.TIME_STAMP and (msg_type == MessageType.CHAT_MESSAGE or msg_type != self.last_message_type):
                 indent_tag.props.pixels_above_lines = 10
         elif indent == "no_prefix":
             indent_tag.props.left_margin = self.longest_prefix + \
-                int(self.config['look']['margin_size'])
+                int(self.config.get('look', 'margin_size'))
         if indent in ("no_prefix", "text"):
             stripped_items = ''.join(stripped_items)
             for url_match in URL_PATTERN.finditer(stripped_items):
@@ -236,7 +236,8 @@ class BufferWidget(Gtk.Box):
         self.textview.set_editable(False)
         self.textview.set_can_focus(False)
         self.textview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        self.textview.set_right_margin(int(self.config['look']['margin_size']))
+        self.textview.set_right_margin(int(self.config.get('look',
+                                                           'margin_size')))
         self.scrolledwindow.add(self.textview)
         horizontal_box.pack_start(self.scrolledwindow, True, True, 0)
         self.adjustment = self.textview.get_vadjustment()
