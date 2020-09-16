@@ -36,7 +36,23 @@ if sys.version_info < (3,):
         *sys.version_info))
 
 
-CONFIG_DIR = os.path.dirname(os.path.realpath(__file__))
+CONFIG_DIR = GLib.get_user_config_dir()
+if not CONFIG_DIR:
+    # fall back to using local directory
+    CONFIG_DIR = os.path.dirname(os.path.realpath(__file__))
+else:
+    CONFIG_DIR = os.path.join(CONFIG_DIR, 'gtk-weechat')
+    os.makedirs(CONFIG_DIR, mode=0o0755, exist_ok=True)
+CONFIG_FILENAME = '%s/gtk-weechat.conf' % CONFIG_DIR
+
+CSS_STYLE_DIR = os.path.dirname(os.path.realpath(__file__))
+for dir in GLib.get_system_data_dirs():
+    if os.path.exists(data_dir := os.path.join(dir, 'gtk-weechat', 'css')):
+        CSS_STYLE_DIR = data_dir
+# prefer styles in user data dir
+if os.path.exists(user_data_dir := os.path.join(GLib.get_user_data_dir(),
+                                                'gtk-weechat', 'css')):
+    CSS_STYLE_DIR = user_data_dir
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -153,7 +169,7 @@ class MainWindow(Gtk.ApplicationWindow):
         # Enable darkmode if enabled before
         self.dark_fallback_provider = Gtk.CssProvider()
         self.dark_fallback_provider.load_from_path(
-            "{}/dark_fallback.css".format(CONFIG_DIR))
+            "{}/dark_fallback.css".format(CSS_STYLE_DIR))
         if STATE.get_dark():
             menuitem_darkmode.set_active(True)
 
