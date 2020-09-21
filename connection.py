@@ -113,11 +113,12 @@ class ConnectionSettings(Gtk.Window):
         self.emit("connect")
 
     def _fill_in_settings(self):
+        """Make the connection dialog show currently used settings."""
         self.entry1.set_text(self.config.get("relay", "server"))
         self.entry2.set_text(self.config.get("relay", "port"))
         self.entry3.set_text(self.config.get("relay", "password"))
 
         self.switch1.set_active(
-            self.config.set("relay", "ssl", "on"))
+            self.config.get("relay", "ssl") == "on")
         self.switch2.set_active(
-            self.config.set("relay", "autoconnect", "on"))
+            self.config.get("relay", "autoconnect") == "on")
