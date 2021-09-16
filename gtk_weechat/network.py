@@ -20,6 +20,7 @@
 
 import struct
 from enum import Enum
+
 import gi
 from gi.repository import Gio, GLib, GObject
 gi.require_version('Gtk', '3.0')

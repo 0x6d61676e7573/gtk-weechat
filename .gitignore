@@ -1,3 +1,6 @@
 **/__pycache__
 **/data.pickle
 **/gtk-weechat.conf
+.eggs/
+*.egg-info/
+/build

@@ -18,11 +18,13 @@
 # along with QWeeChat.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-from enum import Enum
 import re
 import datetime
+from enum import Enum
+
 from gi.repository import Gtk, Gdk, GObject, Pango
-import color
+
+from . import color
 
 URL_PATTERN = re.compile(
     r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")

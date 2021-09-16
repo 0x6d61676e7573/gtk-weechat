@@ -21,16 +21,18 @@ import copy
 import traceback
 import os
 import sys
+
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
-from state import State
-from connection import ConnectionSettings
-from bufferlist import BufferList
-from config import GTKWeechatConfig
-from buffer import Buffer
-import protocol
-from network import Network, ConnectionStatus
+from .state import State
+from .connection import ConnectionSettings
+from .bufferlist import BufferList
+from .config import GTKWeechatConfig
+from .buffer import Buffer
+from . import protocol
+from .network import Network, ConnectionStatus
+
 if sys.version_info < (3,):
     sys.exit("Requires Python version 3.0 or higher. (Version {}.{} detected)".format(
         *sys.version_info))
@@ -584,11 +586,21 @@ class Application(Gtk.Application):
         self.quit()
 
 
-# Start the application
-config = GTKWeechatConfig(CONFIG_FILENAME)
-CONNECTION_SETTINGS = ConnectionSettings(config)
-STATE = State("data.pickle")
-STATE.load_from_file()
-APP = Application(config)
-APP.run()
-STATE.dump_to_file()
+STATE = None
+CONNECTION_SETTINGS = None
+
+def main():
+    global CONFIG_FILENAME
+    global CONNECTION_SETTINGS
+    global STATE
+    # Start the application
+    config = GTKWeechatConfig(CONFIG_FILENAME)
+    CONNECTION_SETTINGS = ConnectionSettings(config)
+    STATE = State("data.pickle")
+    STATE.load_from_file()
+    APP = Application(config)
+    APP.run()
+    STATE.dump_to_file()
+
+if __name__ == '__main__':
+    main()
